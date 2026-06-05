@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Literal
 
 
 CandidateKind = Literal["agent-dev-tool", "open-source-small-tool", "other"]
 DecisionAction = Literal["try", "save", "ignore"]
+
+CANDIDATE_KINDS: tuple[CandidateKind, ...] = (
+    "agent-dev-tool",
+    "open-source-small-tool",
+    "other",
+)
+DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore")
 
 
 @dataclass(frozen=True)
@@ -15,10 +24,16 @@ class Candidate:
     url: str
     source: str
     summary: str
-    tags: list[str]
+    tags: Sequence[str]
     kind: CandidateKind
     discovered_at: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.kind not in CANDIDATE_KINDS:
+            raise ValueError(f"invalid candidate kind: {self.kind}")
+        object.__setattr__(self, "tags", tuple(self.tags))
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -55,6 +70,10 @@ class CandidateDecision:
     score: int
     reason: str
     caveat: str = ""
+
+    def __post_init__(self) -> None:
+        if self.action not in DECISION_ACTIONS:
+            raise ValueError(f"invalid decision action: {self.action}")
 
     def to_dict(self) -> dict[str, Any]:
         return {
