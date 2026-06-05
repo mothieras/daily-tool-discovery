@@ -4,6 +4,7 @@ from daily_tool_discovery.models import Candidate, CandidateDecision
 
 
 def render_briefing(date: str, selected: list[tuple[Candidate, CandidateDecision]]) -> str:
+    _validate_pairs(selected)
     try_items = [(c, d) for c, d in selected if d.action == "try"]
     save_items = [(c, d) for c, d in selected if d.action == "save"]
     ignore_items = [(c, d) for c, d in selected if d.action == "ignore"]
@@ -27,19 +28,32 @@ def _render_section(
         return lines
 
     for candidate, decision in items:
+        caveat = _inline_text(decision.caveat)
         lines.extend(
             [
-                f"### {candidate.name}",
-                f"- Link: {candidate.url}",
-                f"- Type: {candidate.kind}",
+                f"### {_inline_text(candidate.name)}",
+                f"- Link: {_inline_text(candidate.url)}",
+                f"- Type: {_inline_text(candidate.kind)}",
                 f"- Score: {decision.score}",
-                f"- Why it matters: {decision.reason}",
+                f"- Why it matters: {_inline_text(decision.reason)}",
             ]
         )
         if include_trial:
             lines.append("- 15-minute trial: Open the project page, inspect install steps, and decide whether to schedule an installation separately.")
-        if decision.caveat:
-            lines.append(f"- Risk or caveat: {decision.caveat}")
+        if caveat:
+            lines.append(f"- Risk or caveat: {caveat}")
         lines.append("")
 
     return lines
+
+
+def _validate_pairs(selected: list[tuple[Candidate, CandidateDecision]]) -> None:
+    for candidate, decision in selected:
+        if candidate.id != decision.candidate_id:
+            raise ValueError(
+                f"decision candidate_id {decision.candidate_id!r} does not match candidate id {candidate.id!r}"
+            )
+
+
+def _inline_text(value: object) -> str:
+    return " ".join(str(value).split())
