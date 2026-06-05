@@ -18,6 +18,19 @@ def test_read_missing_jsonl_returns_empty_list(tmp_path):
     assert read_jsonl(tmp_path / "missing.jsonl") == []
 
 
+def test_read_jsonl_ignores_blank_lines(tmp_path):
+    path = tmp_path / "items.jsonl"
+    path.write_text(
+        '\n{"name": "CodeIsland"}\n\n{"name": "floral-notepaper"}\n\n',
+        encoding="utf-8",
+    )
+
+    assert read_jsonl(path) == [
+        {"name": "CodeIsland"},
+        {"name": "floral-notepaper"},
+    ]
+
+
 def test_read_invalid_jsonl_includes_file_and_line(tmp_path):
     path = tmp_path / "invalid.jsonl"
     path.write_text('{"name":\n', encoding="utf-8")
