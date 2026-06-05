@@ -19,6 +19,12 @@ HIGH_SIGNAL_TAGS = {
     "local-first",
 }
 
+KIND_PRIORITY = {
+    "agent-dev-tool": 2,
+    "open-source-small-tool": 1,
+    "other": 0,
+}
+
 
 @dataclass(frozen=True)
 class RankedCandidate:
@@ -29,7 +35,7 @@ class RankedCandidate:
 
 def rank_candidates(candidates: list[Candidate]) -> list[RankedCandidate]:
     ranked = [RankedCandidate(candidate, _score(candidate), _reason(candidate)) for candidate in candidates]
-    return sorted(ranked, key=lambda item: item.score, reverse=True)
+    return sorted(ranked, key=_sort_key)
 
 
 def select_daily_candidates(
@@ -76,6 +82,18 @@ def _score(candidate: Candidate) -> int:
         score += 4
 
     return min(score, 100)
+
+
+def _sort_key(item: RankedCandidate) -> tuple[int, int, int, int, str, str]:
+    candidate = item.candidate
+    return (
+        -item.score,
+        -KIND_PRIORITY[candidate.kind],
+        -int(bool(candidate.metadata.get("manual_seed"))),
+        -int(candidate.metadata.get("stars") or 0),
+        candidate.id,
+        candidate.name,
+    )
 
 
 def _reason(candidate: Candidate) -> str:

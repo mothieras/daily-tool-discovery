@@ -42,3 +42,34 @@ def test_select_daily_candidates_caps_output_at_three():
 
     assert len(selected) == 3
     assert [decision.action for _, decision in selected] == ["try", "save", "save"]
+
+
+def test_rank_candidates_breaks_equal_scores_deterministically():
+    first = [
+        candidate("alpha", "agent-dev-tool", ["agent"], stars=10),
+        candidate("beta", "agent-dev-tool", ["mcp"], stars=10),
+    ]
+    second = list(reversed(first))
+
+    assert [item.candidate.id for item in rank_candidates(first)] == ["alpha", "beta"]
+    assert [item.candidate.id for item in rank_candidates(second)] == ["alpha", "beta"]
+
+
+def test_select_daily_candidates_chooses_same_try_candidate_for_reversed_input():
+    first = [
+        candidate("alpha", "agent-dev-tool", ["agent"], stars=10),
+        candidate("beta", "agent-dev-tool", ["mcp"], stars=10),
+    ]
+    second = list(reversed(first))
+
+    first_selected = select_daily_candidates(first, limit=2)
+    second_selected = select_daily_candidates(second, limit=2)
+
+    assert [(candidate.id, decision.action) for candidate, decision in first_selected] == [
+        ("alpha", "try"),
+        ("beta", "save"),
+    ]
+    assert [(candidate.id, decision.action) for candidate, decision in second_selected] == [
+        ("alpha", "try"),
+        ("beta", "save"),
+    ]
