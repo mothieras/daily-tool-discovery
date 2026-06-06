@@ -7,12 +7,14 @@ The project focuses on:
 - Agent/dev tooling: Codex, Claude Code, Hermes, MCP servers, skills, AI coding tools, terminal/dev workflow tools.
 - Open-source small tools: Tauri, Electron, Rust, TypeScript, macOS, Markdown, Obsidian, CLI, and local-first utilities.
 
-The intended v1 shape is a deterministic collector plus a Hermes review layer:
+The implemented v1 shape is a local deterministic briefing pipeline:
 
 - Collect and normalize candidate tools.
 - Deduplicate and filter candidates.
-- Let Hermes score, explain, and select a short daily briefing.
+- Rank and select candidates locally with deterministic rules.
 - Save inspectable Markdown and JSONL artifacts.
+
+Hermes invocation is not wired yet. `prompts/hermes-review.md` is a review prompt/interface artifact for a later integration, not something the current CLI executes. Today, `dry-run` uses local manual seeds and deterministic ranking to write the candidate and briefing artifacts below.
 
 ## Setup
 
