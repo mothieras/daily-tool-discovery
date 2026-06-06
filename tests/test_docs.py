@@ -25,8 +25,9 @@ def test_readme_documents_hermes_skill_cron_modes():
 
     assert "hermes integration is available" in readme
     assert "daily-tool-discovery` hermes skill" in readme
-    assert "--cron" in readme
-    assert "--agent-cron" in readme
+    assert "optional hermes cron" in readme
+    assert "--no-agent" in readme
+    assert "--skill daily-tool-discovery" in readme
     assert "no llm call" in readme
 
 

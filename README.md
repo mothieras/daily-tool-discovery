@@ -32,29 +32,16 @@ This repository is private. On a server with Hermes and GitHub CLI already logge
 mkdir -p ~/apps
 gh repo clone mothieras/daily-tool-discovery ~/apps/daily-tool-discovery
 cd ~/apps/daily-tool-discovery
-bash scripts/install-hermes-server.sh --cron --deliver local
+bash scripts/install-hermes-server.sh
 ```
 
-This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, installs the `daily-tool-discovery` Hermes skill, runs one smoke discovery, and registers a no-agent Hermes cron job.
-
-Recommended modes:
-
-- `--cron`: fastest and cheapest. The CLI discovers candidates and Hermes delivers the generated briefing as-is.
-- `--agent-cron`: Hermes reviews the generated briefing with the installed skill before delivery.
-
-Use the agent-backed cron path if you want Hermes to review the generated briefing with the installed skill:
-
-```bash
-bash scripts/install-hermes-server.sh --agent-cron --deliver local
-```
-
-`--cron` is cheaper because it skips the LLM and delivers the generated briefing directly. `--agent-cron` spends Hermes model calls but lets Hermes apply the skill policy before delivering the result.
+This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, installs the `daily-tool-discovery` Hermes skill, and runs one smoke discovery. It does not create cron jobs.
 
 Useful checks:
 
 ```bash
 ~/.hermes/scripts/daily-tool-discovery.sh
-hermes cron list
+hermes skills list | grep daily-tool-discovery
 ```
 
 Strongly recommended: export `GITHUB_TOKEN` before running the script. Without it, GitHub allows only a low unauthenticated API quota, and curated source metadata may fall back to empty summaries with `metadata_error_status: 403`. Curated source metadata requests are throttled by default; tune `DAILY_TOOL_DISCOVERY_GITHUB_DELAY_SECONDS` if needed.
@@ -63,6 +50,33 @@ Installed Hermes files:
 
 - `~/.hermes/scripts/daily-tool-discovery.sh`
 - `~/.hermes/skills/software-development/daily-tool-discovery/SKILL.md`
+
+## Optional Hermes Cron
+
+Daily Tool Discovery is intended to work with Hermes cron, but cron should be created explicitly by the user.
+
+Cheapest mode: run the script and deliver the generated briefing without an LLM call:
+
+```bash
+hermes cron create "0 9 * * *" \
+  --name daily-tool-discovery \
+  --script daily-tool-discovery.sh \
+  --no-agent \
+  --deliver local
+```
+
+Skill review mode: let Hermes review the generated briefing with the installed skill before delivery:
+
+```bash
+hermes cron create "0 9 * * *" \
+  "Review today's Daily Tool Discovery briefing. Pick at most one try item and up to two save items. Use the daily-tool-discovery skill and do not discover or install anything." \
+  --name daily-tool-discovery-agent \
+  --script daily-tool-discovery.sh \
+  --skill daily-tool-discovery \
+  --deliver local
+```
+
+Check configured jobs with `hermes cron list`.
 
 ## Discover
 
