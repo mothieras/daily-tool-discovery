@@ -4,6 +4,31 @@ url = "https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/READM
 kind = "agent-dev-tool"
 
 [[sources]]
+name = "awesome-hermes-agent"
+url = "https://raw.githubusercontent.com/0xNyk/awesome-hermes-agent/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-claude-code"
+url = "https://raw.githubusercontent.com/hesreallyhim/awesome-claude-code/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-codex-subagents"
+url = "https://raw.githubusercontent.com/VoltAgent/awesome-codex-subagents/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-copilot"
+url = "https://raw.githubusercontent.com/github/awesome-copilot/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-agent-skills"
+url = "https://raw.githubusercontent.com/VoltAgent/awesome-agent-skills/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
 name = "awesome-ai-agents"
 url = "https://raw.githubusercontent.com/e2b-dev/awesome-ai-agents/main/README.md"
 kind = "agent-dev-tool"
@@ -11,6 +36,11 @@ kind = "agent-dev-tool"
 [[sources]]
 name = "awesome-cli-apps"
 url = "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
+kind = "open-source-small-tool"
+
+[[sources]]
+name = "awesome-mac"
+url = "https://raw.githubusercontent.com/jaywcjlove/awesome-mac/master/README.md"
 kind = "open-source-small-tool"
 
 [[sources]]

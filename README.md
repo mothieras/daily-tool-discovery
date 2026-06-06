@@ -69,10 +69,16 @@ Installed Hermes files:
 Run the live discovery pipeline:
 
 ```bash
-daily-tool-discovery discover --root . --date 2026-06-06
+daily-tool-discovery discover --root . --date 2026-06-06 --limit 80
 ```
 
 By default this reads `config/sources.toml` if it exists, otherwise `config/sources.example.toml`.
+
+Discovery combines three input paths:
+
+- `seeds/manual.jsonl`: friend recommendations and known-good seeds. The server installer copies `seeds/manual.example.jsonl` here on first install.
+- `[[sources]]`: curated README-style source lists. Each source gets a capped share so one large list cannot fill the whole candidate pool.
+- `[[github_search]]`: direct GitHub Search queries. `discover` reserves part of the candidate pool for search so it still runs even when source lists are large.
 
 Artifacts:
 

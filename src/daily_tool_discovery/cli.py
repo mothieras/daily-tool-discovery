@@ -14,6 +14,7 @@ from daily_tool_discovery.curated_sources import (
     load_github_search_sources,
 )
 from daily_tool_discovery.feedback import FeedbackRecord, append_feedback
+from daily_tool_discovery.models import Candidate
 from daily_tool_discovery.ranking import select_daily_candidates
 from daily_tool_discovery.seeds import load_manual_seeds
 
@@ -44,20 +45,27 @@ def run_discover(
 ) -> None:
     current_date = _normalize_date(date)
     config_path = _resolve_sources_path(root, sources_path)
-    candidates = discover_curated_candidates(
-        load_curated_sources(config_path),
-        discovered_at=current_date,
-        limit=limit,
-    )
+
+    candidates = _load_optional_manual_seeds(root, current_date)
     remaining = max(limit - len(candidates), 0)
-    if remaining:
-        candidates.extend(
-            discover_github_search_candidates(
-                load_github_search_sources(config_path),
-                discovered_at=current_date,
-                limit=remaining,
-            )
+    github_searches = load_github_search_sources(config_path)
+    github_quota = _github_search_quota(remaining, has_github_searches=bool(github_searches))
+    curated_quota = max(remaining - github_quota, 0)
+
+    candidates.extend(
+        discover_curated_candidates(
+            load_curated_sources(config_path),
+            discovered_at=current_date,
+            limit=curated_quota,
         )
+    )
+    candidates.extend(
+        discover_github_search_candidates(
+            github_searches,
+            discovered_at=current_date,
+            limit=github_quota,
+        )
+    )
 
     candidates = _dedupe_candidates(candidates)
     candidate_path = root / "candidates" / f"{current_date}.jsonl"
@@ -68,6 +76,19 @@ def run_discover(
 
     briefing_path.parent.mkdir(parents=True, exist_ok=True)
     briefing_path.write_text(render_briefing(current_date, selected), encoding="utf-8")
+
+
+def _load_optional_manual_seeds(root: Path, discovered_at: str) -> list[Candidate]:
+    seed_path = root / "seeds" / "manual.jsonl"
+    if not seed_path.exists():
+        return []
+    return load_manual_seeds(seed_path, discovered_at=discovered_at)
+
+
+def _github_search_quota(limit: int, has_github_searches: bool) -> int:
+    if not has_github_searches or limit <= 0:
+        return 0
+    return min(20, max(10, (limit + 3) // 4), limit)
 
 
 def _normalize_date(value: str | None) -> str:
@@ -97,8 +118,8 @@ def _resolve_sources_path(root: Path, sources_path: Path | None) -> Path:
     return root / "config" / "sources.example.toml"
 
 
-def _dedupe_candidates(candidates: list[Any]) -> list[Any]:
-    unique: dict[str, Any] = {}
+def _dedupe_candidates(candidates: list[Candidate]) -> list[Candidate]:
+    unique: dict[str, Candidate] = {}
     for candidate in candidates:
         unique.setdefault(candidate.id.lower(), candidate)
     return list(unique.values())

@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 HERMES_BIN="${HERMES_BIN:-hermes}"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
-LIMIT="${LIMIT:-40}"
+LIMIT="${LIMIT:-80}"
 SCHEDULE="${SCHEDULE:-0 9 * * *}"
 DELIVER="${DELIVER:-local}"
 INSTALL_CRON=0
@@ -50,6 +50,11 @@ cd "$ROOT"
 . "$ROOT/.venv/bin/activate"
 python -m pip install -U pip
 python -m pip install -e .
+
+mkdir -p "$ROOT/seeds"
+if [[ ! -f "$ROOT/seeds/manual.jsonl" && -f "$ROOT/seeds/manual.example.jsonl" ]]; then
+  cp "$ROOT/seeds/manual.example.jsonl" "$ROOT/seeds/manual.jsonl"
+fi
 
 mkdir -p "$HERMES_HOME/scripts"
 cat > "$HERMES_HOME/scripts/daily-tool-discovery.sh" <<SH

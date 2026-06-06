@@ -109,9 +109,13 @@ def discover_curated_candidates(
     text_transport: TextTransport | None = None,
     github_client: GitHubClient | None = None,
 ) -> list[Candidate]:
+    if not sources or limit <= 0:
+        return []
+
     text_client = text_transport or UrllibTextTransport()
     github = github_client or GitHubClient(token=os.environ.get("GITHUB_TOKEN"))
     candidates_by_id: dict[str, Candidate] = {}
+    per_source_limit = max(1, (limit + len(sources) - 1) // len(sources))
 
     for source in sources:
         try:
@@ -119,6 +123,7 @@ def discover_curated_candidates(
         except OSError:
             continue
 
+        added_from_source = 0
         for full_name in extract_github_repos(text):
             candidate = _candidate_from_repo(
                 full_name=full_name,
@@ -126,9 +131,14 @@ def discover_curated_candidates(
                 discovered_at=discovered_at,
                 github_client=github,
             )
+            before_count = len(candidates_by_id)
             candidates_by_id.setdefault(candidate.id.lower(), candidate)
+            if len(candidates_by_id) > before_count:
+                added_from_source += 1
             if len(candidates_by_id) >= limit:
                 return list(candidates_by_id.values())
+            if added_from_source >= per_source_limit:
+                break
 
     return list(candidates_by_id.values())
 

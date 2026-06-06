@@ -91,6 +91,59 @@ def test_discover_writes_candidates_and_briefing(tmp_path, monkeypatch):
     assert "foo/bar" in (tmp_path / "briefings" / "2026-06-06.md").read_text(encoding="utf-8")
 
 
+def test_discover_includes_manual_seeds_and_reserves_github_search_quota(tmp_path, monkeypatch):
+    write_manual_seed(tmp_path)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n[[github_search]]\nname='search'\nquery='agent'\n", encoding="utf-8")
+    captured = {}
+    curated = Candidate(
+        id="github:curated/tool",
+        name="curated/tool",
+        url="https://github.com/curated/tool",
+        source="curated:fake",
+        summary="Curated tool",
+        tags=["agent"],
+        kind="agent-dev-tool",
+        discovered_at="2026-06-06",
+        metadata={},
+    )
+    searched = Candidate(
+        id="github:search/tool",
+        name="search/tool",
+        url="https://github.com/search/tool",
+        source="github_search:search",
+        summary="Search tool",
+        tags=["agent"],
+        kind="agent-dev-tool",
+        discovered_at="2026-06-06",
+        metadata={},
+    )
+    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
+    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [object()])
+
+    def fake_curated(sources, discovered_at, limit):
+        captured["curated_limit"] = limit
+        return [curated]
+
+    def fake_search(searches, discovered_at, limit):
+        captured["search_limit"] = limit
+        return [searched]
+
+    monkeypatch.setattr("daily_tool_discovery.cli.discover_curated_candidates", fake_curated)
+    monkeypatch.setattr("daily_tool_discovery.cli.discover_github_search_candidates", fake_search)
+
+    run_discover(root=tmp_path, date="2026-06-06", limit=80)
+
+    rows = read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")
+    assert [row["id"] for row in rows] == [
+        "manual:https://github.com/Achilng/floral-notepaper",
+        "github:curated/tool",
+        "github:search/tool",
+    ]
+    assert captured == {"curated_limit": 59, "search_limit": 20}
+
+
 def test_feedback_command_writes_feedback_jsonl(tmp_path):
     result = main(
         [

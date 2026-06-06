@@ -14,6 +14,14 @@ class FakeTextTransport:
         return self.text
 
 
+class FakeTextTransportByUrl:
+    def __init__(self, texts):
+        self.texts = texts
+
+    def get_text(self, url):
+        return self.texts[url]
+
+
 class FakeGitHubClient:
     def __init__(self, fail=False):
         self.fail = fail
@@ -68,3 +76,42 @@ def test_discover_curated_candidates_falls_back_when_metadata_fails():
 
     assert candidates[0].id == "github:foo/bar"
     assert candidates[0].metadata["metadata_error"] is True
+
+
+def test_discover_curated_candidates_caps_each_source():
+    candidates = discover_curated_candidates(
+        [
+            CuratedSource(name="first", url="https://example.com/first.md", kind="agent-dev-tool"),
+            CuratedSource(name="second", url="https://example.com/second.md", kind="agent-dev-tool"),
+        ],
+        discovered_at="2026-06-06",
+        limit=4,
+        text_transport=FakeTextTransportByUrl(
+            {
+                "https://example.com/first.md": "\n".join(
+                    [
+                        "https://github.com/one/a",
+                        "https://github.com/one/b",
+                        "https://github.com/one/c",
+                        "https://github.com/one/d",
+                    ]
+                ),
+                "https://example.com/second.md": "\n".join(
+                    [
+                        "https://github.com/two/a",
+                        "https://github.com/two/b",
+                        "https://github.com/two/c",
+                        "https://github.com/two/d",
+                    ]
+                ),
+            }
+        ),
+        github_client=FakeGitHubClient(fail=True),
+    )
+
+    assert [candidate.source for candidate in candidates] == [
+        "curated:first",
+        "curated:first",
+        "curated:second",
+        "curated:second",
+    ]
