@@ -69,6 +69,11 @@ def _score(candidate: Candidate) -> int:
 
     if candidate.metadata.get("manual_seed"):
         score += 35
+    if candidate.metadata.get("taste_profile_match"):
+        score += 8
+        if candidate.metadata.get("taste_profile_kind_match"):
+            score += 4
+        score += min(len(candidate.metadata.get("taste_profile_tags") or []) * 4, 12)
 
     matching_tags = set(candidate.tags) & HIGH_SIGNAL_TAGS
     score += min(len(matching_tags) * 8, 32)

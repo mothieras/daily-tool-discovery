@@ -91,31 +91,31 @@ def test_discover_writes_candidates_and_briefing(tmp_path, monkeypatch):
     assert "foo/bar" in (tmp_path / "briefings" / "2026-06-06.md").read_text(encoding="utf-8")
 
 
-def test_discover_includes_manual_seeds_and_reserves_github_search_quota(tmp_path, monkeypatch):
+def test_discover_uses_manual_seeds_as_taste_profile_without_listing_them(tmp_path, monkeypatch):
     write_manual_seed(tmp_path)
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n[[github_search]]\nname='search'\nquery='agent'\n", encoding="utf-8")
     captured = {}
     curated = Candidate(
-        id="github:curated/tool",
-        name="curated/tool",
-        url="https://github.com/curated/tool",
+        id="github:Achilng/floral-notepaper",
+        name="Achilng/floral-notepaper",
+        url="https://github.com/Achilng/floral-notepaper",
         source="curated:fake",
-        summary="Curated tool",
-        tags=["agent"],
-        kind="agent-dev-tool",
+        summary="Duplicate manual seed",
+        tags=["tauri", "markdown"],
+        kind="open-source-small-tool",
         discovered_at="2026-06-06",
         metadata={},
     )
     searched = Candidate(
-        id="github:search/tool",
-        name="search/tool",
-        url="https://github.com/search/tool",
+        id="github:search/notes",
+        name="search/notes",
+        url="https://github.com/search/notes",
         source="github_search:search",
-        summary="Search tool",
-        tags=["agent"],
-        kind="agent-dev-tool",
+        summary="Search notes tool",
+        tags=["tauri", "markdown"],
+        kind="open-source-small-tool",
         discovered_at="2026-06-06",
         metadata={},
     )
@@ -136,12 +136,44 @@ def test_discover_includes_manual_seeds_and_reserves_github_search_quota(tmp_pat
     run_discover(root=tmp_path, date="2026-06-06", limit=80)
 
     rows = read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")
-    assert [row["id"] for row in rows] == [
-        "manual:https://github.com/Achilng/floral-notepaper",
-        "github:curated/tool",
-        "github:search/tool",
-    ]
-    assert captured == {"curated_limit": 59, "search_limit": 20}
+    assert [row["id"] for row in rows] == ["github:search/notes"]
+    assert rows[0]["metadata"]["taste_profile_match"] is True
+    assert rows[0]["metadata"]["taste_profile_kind_match"] is True
+    assert rows[0]["metadata"]["taste_profile_tags"] == ["markdown", "tauri"]
+    assert captured == {"curated_limit": 60, "search_limit": 20}
+
+
+def test_discover_does_not_apply_taste_profile_from_kind_only(tmp_path, monkeypatch):
+    write_manual_seed(tmp_path)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n", encoding="utf-8")
+    candidate = Candidate(
+        id="github:generic/tool",
+        name="generic/tool",
+        url="https://github.com/generic/tool",
+        source="curated:fake",
+        summary="Generic small tool",
+        tags=["calendar"],
+        kind="open-source-small-tool",
+        discovered_at="2026-06-06",
+        metadata={},
+    )
+    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
+    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [])
+    monkeypatch.setattr(
+        "daily_tool_discovery.cli.discover_curated_candidates",
+        lambda sources, discovered_at, limit: [candidate],
+    )
+    monkeypatch.setattr(
+        "daily_tool_discovery.cli.discover_github_search_candidates",
+        lambda searches, discovered_at, limit: [],
+    )
+
+    run_discover(root=tmp_path, date="2026-06-06", limit=80)
+
+    rows = read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")
+    assert "taste_profile_match" not in rows[0]["metadata"]
 
 
 def test_feedback_command_writes_feedback_jsonl(tmp_path):

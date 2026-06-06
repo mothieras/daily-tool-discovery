@@ -31,7 +31,7 @@ Optimize for the user's actual goal: finding useful software, skills, MCP server
 Prioritize:
 
 1. Relevance to the main line: Agent tooling, MCP, Codex, Claude Code, Hermes, CLI/dev workflow, automation, local-first utilities.
-2. Source trust: friend/manual seed > curated list > direct GitHub search.
+2. Source trust: friend/manual seed taste profile > curated list > direct GitHub search. Manual seeds express preferences; do not repeatedly recommend the seed items themselves unless the user asks.
 3. Practical trial value: can the user evaluate it in about 15 minutes without major setup risk?
 4. Maintenance confidence: stars, recent activity, README clarity, and developer credibility reduce risk but do not override relevance.
 5. Novelty: a small but sharply relevant project can be worth trying even with low stars.

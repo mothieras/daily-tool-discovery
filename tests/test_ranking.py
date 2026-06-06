@@ -2,7 +2,10 @@ from daily_tool_discovery.models import Candidate
 from daily_tool_discovery.ranking import rank_candidates, select_daily_candidates
 
 
-def candidate(id, kind, tags, stars=0, manual=False):
+def candidate(id, kind, tags, stars=0, manual=False, metadata=None):
+    metadata = metadata or {}
+    metadata.setdefault("stars", stars)
+    metadata.setdefault("manual_seed", manual)
     return Candidate(
         id=id,
         name=id,
@@ -12,7 +15,7 @@ def candidate(id, kind, tags, stars=0, manual=False):
         tags=tags,
         kind=kind,
         discovered_at="2026-06-05",
-        metadata={"stars": stars, "manual_seed": manual},
+        metadata=metadata,
     )
 
 
@@ -53,6 +56,28 @@ def test_rank_candidates_breaks_equal_scores_deterministically():
 
     assert [item.candidate.id for item in rank_candidates(first)] == ["alpha", "beta"]
     assert [item.candidate.id for item in rank_candidates(second)] == ["alpha", "beta"]
+
+
+def test_rank_candidates_uses_taste_profile_as_soft_boost():
+    ranked = rank_candidates(
+        [
+            candidate("plain", "open-source-small-tool", ["tauri"], stars=50),
+            candidate(
+                "taste-match",
+                "open-source-small-tool",
+                ["tauri", "markdown"],
+                stars=50,
+                metadata={
+                    "stars": 50,
+                    "taste_profile_match": True,
+                    "taste_profile_kind_match": True,
+                    "taste_profile_tags": ["markdown", "tauri"],
+                },
+            ),
+        ]
+    )
+
+    assert [item.candidate.id for item in ranked] == ["taste-match", "plain"]
 
 
 def test_select_daily_candidates_chooses_same_try_candidate_for_reversed_input():

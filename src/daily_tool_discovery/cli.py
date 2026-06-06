@@ -46,18 +46,15 @@ def run_discover(
     current_date = _normalize_date(date)
     config_path = _resolve_sources_path(root, sources_path)
 
-    candidates = _load_optional_manual_seeds(root, current_date)
-    remaining = max(limit - len(candidates), 0)
+    taste_seeds = _load_optional_manual_seeds(root, current_date)
     github_searches = load_github_search_sources(config_path)
-    github_quota = _github_search_quota(remaining, has_github_searches=bool(github_searches))
-    curated_quota = max(remaining - github_quota, 0)
+    github_quota = _github_search_quota(limit, has_github_searches=bool(github_searches))
+    curated_quota = max(limit - github_quota, 0)
 
-    candidates.extend(
-        discover_curated_candidates(
-            load_curated_sources(config_path),
-            discovered_at=current_date,
-            limit=curated_quota,
-        )
+    candidates = discover_curated_candidates(
+        load_curated_sources(config_path),
+        discovered_at=current_date,
+        limit=curated_quota,
     )
     candidates.extend(
         discover_github_search_candidates(
@@ -67,7 +64,10 @@ def run_discover(
         )
     )
 
-    candidates = _dedupe_candidates(candidates)
+    candidates = _apply_taste_profile(
+        _exclude_manual_seed_urls(_dedupe_candidates(candidates), taste_seeds),
+        taste_seeds,
+    )
     candidate_path = root / "candidates" / f"{current_date}.jsonl"
     briefing_path = root / "briefings" / f"{current_date}.md"
 
@@ -85,10 +85,59 @@ def _load_optional_manual_seeds(root: Path, discovered_at: str) -> list[Candidat
     return load_manual_seeds(seed_path, discovered_at=discovered_at)
 
 
+def _exclude_manual_seed_urls(
+    candidates: list[Candidate], taste_seeds: list[Candidate]
+) -> list[Candidate]:
+    seed_urls = {_normalize_url(seed.url) for seed in taste_seeds}
+    if not seed_urls:
+        return candidates
+    return [candidate for candidate in candidates if _normalize_url(candidate.url) not in seed_urls]
+
+
+def _apply_taste_profile(
+    candidates: list[Candidate], taste_seeds: list[Candidate]
+) -> list[Candidate]:
+    if not taste_seeds:
+        return candidates
+
+    taste_tags = {tag for seed in taste_seeds for tag in seed.tags}
+    taste_kinds = {seed.kind for seed in taste_seeds}
+    profiled: list[Candidate] = []
+    for candidate in candidates:
+        matching_tags = sorted(set(candidate.tags) & taste_tags)
+        kind_match = candidate.kind in taste_kinds
+        if not matching_tags:
+            profiled.append(candidate)
+            continue
+
+        metadata = dict(candidate.metadata)
+        metadata["taste_profile_match"] = True
+        metadata["taste_profile_tags"] = matching_tags
+        metadata["taste_profile_kind_match"] = kind_match
+        profiled.append(
+            Candidate(
+                id=candidate.id,
+                name=candidate.name,
+                url=candidate.url,
+                source=candidate.source,
+                summary=candidate.summary,
+                tags=candidate.tags,
+                kind=candidate.kind,
+                discovered_at=candidate.discovered_at,
+                metadata=metadata,
+            )
+        )
+    return profiled
+
+
 def _github_search_quota(limit: int, has_github_searches: bool) -> int:
     if not has_github_searches or limit <= 0:
         return 0
     return min(20, max(10, (limit + 3) // 4), limit)
+
+
+def _normalize_url(value: str) -> str:
+    return value.removesuffix(".git").rstrip("/").lower()
 
 
 def _normalize_date(value: str | None) -> str:

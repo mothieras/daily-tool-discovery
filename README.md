@@ -76,7 +76,7 @@ By default this reads `config/sources.toml` if it exists, otherwise `config/sour
 
 Discovery combines three input paths:
 
-- `seeds/manual.jsonl`: friend recommendations and known-good seeds. The server installer copies `seeds/manual.example.jsonl` here on first install.
+- `seeds/manual.jsonl`: friend recommendations and known-good taste seeds. The server installer copies `seeds/manual.example.jsonl` here on first install. `discover` uses these seeds as ranking taste signals and filters the seed URLs out of the daily candidate list.
 - `[[sources]]`: curated README-style source lists. Each source gets a capped share so one large list cannot fill the whole candidate pool.
 - `[[github_search]]`: direct GitHub Search queries. `discover` reserves part of the candidate pool for search so it still runs even when source lists are large.
 
@@ -87,7 +87,7 @@ Artifacts:
 
 ## Manual Seeds
 
-Manual seeds are still useful for friend recommendations or projects you already know about:
+Manual seeds are useful for friend recommendations or projects you already know about. In `discover`, they act as taste references rather than daily recommendations. Use `dry-run` only when you want to inspect the manual seeds themselves:
 
 ```bash
 mkdir -p seeds
