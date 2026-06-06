@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from daily_tool_discovery.briefing import render_briefing
+from daily_tool_discovery.feedback import FeedbackRecord, append_feedback
 from daily_tool_discovery.ranking import select_daily_candidates
 from daily_tool_discovery.seeds import load_manual_seeds
 
@@ -57,6 +58,16 @@ def build_parser() -> argparse.ArgumentParser:
     dry_run.add_argument("--root", type=Path, default=Path.cwd())
     dry_run.add_argument("--date", default=None)
 
+    feedback = subcommands.add_parser(
+        "feedback", help="Append lightweight feedback for a candidate"
+    )
+    feedback.add_argument("--root", type=Path, default=Path.cwd())
+    feedback.add_argument("--date", required=True)
+    feedback.add_argument("--candidate-id", required=True)
+    feedback.add_argument("--verdict", choices=["tried", "saved", "ignored"], required=True)
+    feedback.add_argument("--value", required=True)
+    feedback.add_argument("--note", default="")
+
     return parser
 
 
@@ -72,6 +83,19 @@ def main(argv: list[str] | None = None) -> int:
             run_dry_run(root=args.root, date=args.date)
         except (FileNotFoundError, ValueError) as exc:
             parser.error(str(exc))
+        return 0
+
+    if args.command == "feedback":
+        append_feedback(
+            args.root / "feedback.jsonl",
+            FeedbackRecord(
+                date=args.date,
+                candidate_id=args.candidate_id,
+                verdict=args.verdict,
+                value=args.value,
+                note=args.note,
+            ),
+        )
         return 0
 
     parser.error(f"Unknown command: {args.command}")
