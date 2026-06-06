@@ -33,8 +33,13 @@ def test_hermes_prompt_scopes_review_to_provided_artifacts():
     assert "Do not install" in prompt
     assert "provided candidate artifacts" in prompt_lower
     assert "do not autonomously discover" in prompt_lower
+    assert "fetch" in prompt_lower
+    assert "set up" in prompt_lower or "setup" in prompt_lower
+    assert "mutate" in prompt_lower
+    assert "environment" in prompt_lower
     assert "briefing/feedback flow" in prompt_lower
     assert "try, save, or ignore" in prompt
+    assert "at most three" in prompt_lower or "max three" in prompt_lower
 
 
 def test_cli_help_documents_dry_run_and_feedback_commands():
