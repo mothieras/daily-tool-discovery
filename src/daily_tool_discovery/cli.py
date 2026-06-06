@@ -86,16 +86,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "feedback":
-        append_feedback(
-            args.root / "feedback.jsonl",
-            FeedbackRecord(
-                date=args.date,
-                candidate_id=args.candidate_id,
-                verdict=args.verdict,
-                value=args.value,
-                note=args.note,
-            ),
-        )
+        try:
+            feedback_date = _normalize_date(args.date)
+            append_feedback(
+                args.root / "feedback.jsonl",
+                FeedbackRecord(
+                    date=feedback_date,
+                    candidate_id=args.candidate_id,
+                    verdict=args.verdict,
+                    value=args.value,
+                    note=args.note,
+                ),
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
         return 0
 
     parser.error(f"Unknown command: {args.command}")

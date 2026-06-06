@@ -1,6 +1,7 @@
 import pytest
 
-from daily_tool_discovery.cli import run_dry_run
+from daily_tool_discovery.cli import main, run_dry_run
+from daily_tool_discovery.jsonl_store import read_jsonl
 
 
 def write_manual_seed(root):
@@ -55,3 +56,55 @@ def test_dry_run_requires_manual_seed_file_before_writing_artifacts(tmp_path):
 
     assert not (tmp_path / "candidates").exists()
     assert not (tmp_path / "briefings").exists()
+
+
+def test_feedback_command_writes_feedback_jsonl(tmp_path):
+    result = main(
+        [
+            "feedback",
+            "--root",
+            str(tmp_path),
+            "--date",
+            "2026-06-05",
+            "--candidate-id",
+            "github:Achilng/floral-notepaper",
+            "--verdict",
+            "tried",
+            "--value",
+            "useful",
+            "--note",
+            "Worth keeping.",
+        ]
+    )
+
+    assert result == 0
+    assert read_jsonl(tmp_path / "feedback.jsonl") == [
+        {
+            "date": "2026-06-05",
+            "candidate_id": "github:Achilng/floral-notepaper",
+            "verdict": "tried",
+            "value": "useful",
+            "note": "Worth keeping.",
+        }
+    ]
+
+
+def test_feedback_command_rejects_path_like_date_without_writing_feedback(tmp_path):
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "feedback",
+                "--root",
+                str(tmp_path),
+                "--date",
+                "../../escape",
+                "--candidate-id",
+                "github:Achilng/floral-notepaper",
+                "--verdict",
+                "ignored",
+                "--value",
+                "not-useful",
+            ]
+        )
+
+    assert not (tmp_path / "feedback.jsonl").exists()
