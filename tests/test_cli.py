@@ -1,6 +1,7 @@
 import pytest
 
-from daily_tool_discovery.cli import main, run_dry_run
+from daily_tool_discovery.cli import main, run_discover, run_dry_run
+from daily_tool_discovery.models import Candidate
 from daily_tool_discovery.jsonl_store import read_jsonl
 
 
@@ -56,6 +57,38 @@ def test_dry_run_requires_manual_seed_file_before_writing_artifacts(tmp_path):
 
     assert not (tmp_path / "candidates").exists()
     assert not (tmp_path / "briefings").exists()
+
+
+def test_discover_writes_candidates_and_briefing(tmp_path, monkeypatch):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n", encoding="utf-8")
+    candidate = Candidate(
+        id="github:foo/bar",
+        name="foo/bar",
+        url="https://github.com/foo/bar",
+        source="curated:fake",
+        summary="Agent workflow tool",
+        tags=["agent"],
+        kind="agent-dev-tool",
+        discovered_at="2026-06-06",
+        metadata={"stars": 10},
+    )
+    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
+    monkeypatch.setattr(
+        "daily_tool_discovery.cli.discover_curated_candidates",
+        lambda sources, discovered_at, limit: [candidate],
+    )
+    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [])
+    monkeypatch.setattr(
+        "daily_tool_discovery.cli.discover_github_search_candidates",
+        lambda searches, discovered_at, limit: [],
+    )
+
+    run_discover(root=tmp_path, date="2026-06-06")
+
+    assert read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")[0]["id"] == "github:foo/bar"
+    assert "foo/bar" in (tmp_path / "briefings" / "2026-06-06.md").read_text(encoding="utf-8")
 
 
 def test_feedback_command_writes_feedback_jsonl(tmp_path):

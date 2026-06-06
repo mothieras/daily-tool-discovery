@@ -7,8 +7,10 @@ def test_readme_documents_dry_run_command():
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "python -m pip install -e \".[dev]\"" in readme
+    assert "daily-tool-discovery discover" in readme
     assert "daily-tool-discovery dry-run" in readme
     assert "daily-tool-discovery feedback" in readme
+    assert "config/sources.example.toml" in readme
     assert "seeds/manual.example.jsonl" in readme
     assert "candidates/YYYY-MM-DD.jsonl" in readme
     assert "briefings/YYYY-MM-DD.md" in readme
@@ -48,4 +50,5 @@ def test_cli_help_documents_dry_run_and_feedback_commands():
     help_text = build_parser().format_help()
 
     assert "dry-run" in help_text
+    assert "discover" in help_text
     assert "feedback" in help_text

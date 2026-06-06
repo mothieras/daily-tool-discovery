@@ -44,22 +44,47 @@ class GitHubClient:
         payload = self.transport.get_json(url, headers)
         candidates: list[Candidate] = []
         for item in payload.get("items", []):
-            full_name = str(item["full_name"])
-            candidates.append(
-                Candidate(
-                    id=f"github:{full_name}",
-                    name=full_name,
-                    url=str(item["html_url"]),
-                    source="github",
-                    summary=str(item.get("description") or ""),
-                    tags=[str(topic) for topic in item.get("topics", [])],
-                    kind=kind,
-                    discovered_at=discovered_at,
-                    metadata={
-                        "stars": int(item.get("stargazers_count") or 0),
-                        "language": item.get("language"),
-                        "pushed_at": item.get("pushed_at"),
-                    },
-                )
-            )
+            candidates.append(candidate_from_github_payload(item, discovered_at, kind, source="github"))
         return candidates
+
+    def get_repository(
+        self,
+        full_name: str,
+        discovered_at: str,
+        kind: CandidateKind,
+        source: str,
+    ) -> Candidate:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "daily-tool-discovery",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
+        payload = self.transport.get_json(f"https://api.github.com/repos/{full_name}", headers)
+        return candidate_from_github_payload(payload, discovered_at, kind, source=source)
+
+
+def candidate_from_github_payload(
+    item: dict[str, Any],
+    discovered_at: str,
+    kind: CandidateKind,
+    source: str,
+) -> Candidate:
+    full_name = str(item["full_name"])
+    return Candidate(
+        id=f"github:{full_name}",
+        name=full_name,
+        url=str(item["html_url"]),
+        source=source,
+        summary=str(item.get("description") or ""),
+        tags=[str(topic) for topic in item.get("topics", [])],
+        kind=kind,
+        discovered_at=discovered_at,
+        metadata={
+            "stars": int(item.get("stargazers_count") or 0),
+            "language": item.get("language"),
+            "pushed_at": item.get("pushed_at"),
+            "homepage": item.get("homepage"),
+        },
+    )

@@ -1,3 +1,23 @@
+[[sources]]
+name = "awesome-mcp-servers"
+url = "https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-ai-agents"
+url = "https://raw.githubusercontent.com/e2b-dev/awesome-ai-agents/main/README.md"
+kind = "agent-dev-tool"
+
+[[sources]]
+name = "awesome-cli-apps"
+url = "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
+kind = "open-source-small-tool"
+
+[[sources]]
+name = "awesome-selfhosted"
+url = "https://raw.githubusercontent.com/awesome-selfhosted/awesome-selfhosted/master/README.md"
+kind = "open-source-small-tool"
+
 [[github_search]]
 name = "agent-dev-mainline"
 query = "agent mcp ai-coding CLI tool"

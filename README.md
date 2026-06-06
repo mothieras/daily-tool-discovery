@@ -14,7 +14,7 @@ The implemented v1 shape is a local deterministic briefing pipeline:
 - Rank and select candidates locally with deterministic rules.
 - Save inspectable Markdown and JSONL artifacts.
 
-Hermes invocation is not wired yet. `prompts/hermes-review.md` is a review prompt/interface artifact for a later integration, not something the current CLI executes. Today, `dry-run` uses local manual seeds and deterministic ranking to write the candidate and briefing artifacts below.
+Hermes invocation is not wired yet. `prompts/hermes-review.md` is a review prompt/interface artifact for a later integration, not something the current CLI executes. Today, `discover` can read curated source lists plus GitHub search config and write the candidate and briefing artifacts below.
 
 ## Setup
 
@@ -24,13 +24,29 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
+## Discover
+
+Run the live discovery pipeline:
+
+```bash
+daily-tool-discovery discover --root . --date 2026-06-06
+```
+
+By default this reads `config/sources.toml` if it exists, otherwise `config/sources.example.toml`.
+
+Artifacts:
+
+- `candidates/YYYY-MM-DD.jsonl`
+- `briefings/YYYY-MM-DD.md`
+
 ## Manual Seeds
 
-Copy the example seed file before the first dry run:
+Manual seeds are still useful for friend recommendations or projects you already know about:
 
 ```bash
 mkdir -p seeds
 cp seeds/manual.example.jsonl seeds/manual.jsonl
+daily-tool-discovery dry-run --root . --date 2026-06-06
 ```
 
 ## Dry Run

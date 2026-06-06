@@ -7,6 +7,12 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from daily_tool_discovery.briefing import render_briefing
+from daily_tool_discovery.curated_sources import (
+    discover_curated_candidates,
+    discover_github_search_candidates,
+    load_curated_sources,
+    load_github_search_sources,
+)
 from daily_tool_discovery.feedback import FeedbackRecord, append_feedback
 from daily_tool_discovery.ranking import select_daily_candidates
 from daily_tool_discovery.seeds import load_manual_seeds
@@ -20,6 +26,40 @@ def run_dry_run(root: Path, date: str | None = None) -> None:
 
     candidates = load_manual_seeds(seed_path, discovered_at=current_date)
 
+    candidate_path = root / "candidates" / f"{current_date}.jsonl"
+    briefing_path = root / "briefings" / f"{current_date}.md"
+
+    _write_jsonl(candidate_path, [candidate.to_dict() for candidate in candidates])
+    selected = select_daily_candidates(candidates)
+
+    briefing_path.parent.mkdir(parents=True, exist_ok=True)
+    briefing_path.write_text(render_briefing(current_date, selected), encoding="utf-8")
+
+
+def run_discover(
+    root: Path,
+    date: str | None = None,
+    sources_path: Path | None = None,
+    limit: int = 80,
+) -> None:
+    current_date = _normalize_date(date)
+    config_path = _resolve_sources_path(root, sources_path)
+    candidates = discover_curated_candidates(
+        load_curated_sources(config_path),
+        discovered_at=current_date,
+        limit=limit,
+    )
+    remaining = max(limit - len(candidates), 0)
+    if remaining:
+        candidates.extend(
+            discover_github_search_candidates(
+                load_github_search_sources(config_path),
+                discovered_at=current_date,
+                limit=remaining,
+            )
+        )
+
+    candidates = _dedupe_candidates(candidates)
     candidate_path = root / "candidates" / f"{current_date}.jsonl"
     briefing_path = root / "briefings" / f"{current_date}.md"
 
@@ -48,6 +88,22 @@ def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     temp_path.replace(path)
 
 
+def _resolve_sources_path(root: Path, sources_path: Path | None) -> Path:
+    if sources_path is not None:
+        return sources_path
+    configured = root / "config" / "sources.toml"
+    if configured.exists():
+        return configured
+    return root / "config" / "sources.example.toml"
+
+
+def _dedupe_candidates(candidates: list[Any]) -> list[Any]:
+    unique: dict[str, Any] = {}
+    for candidate in candidates:
+        unique.setdefault(candidate.id.lower(), candidate)
+    return list(unique.values())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="daily-tool-discovery")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -57,6 +113,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dry_run.add_argument("--root", type=Path, default=Path.cwd())
     dry_run.add_argument("--date", default=None)
+
+    discover = subcommands.add_parser(
+        "discover", help="Discover candidates from curated sources and GitHub search"
+    )
+    discover.add_argument("--root", type=Path, default=Path.cwd())
+    discover.add_argument("--date", default=None)
+    discover.add_argument("--sources", type=Path, default=None)
+    discover.add_argument("--limit", type=int, default=80)
 
     feedback = subcommands.add_parser(
         "feedback", help="Append lightweight feedback for a candidate"
@@ -81,6 +145,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "dry-run":
         try:
             run_dry_run(root=args.root, date=args.date)
+        except (FileNotFoundError, ValueError) as exc:
+            parser.error(str(exc))
+        return 0
+
+    if args.command == "discover":
+        try:
+            run_discover(
+                root=args.root,
+                date=args.date,
+                sources_path=args.sources,
+                limit=args.limit,
+            )
         except (FileNotFoundError, ValueError) as exc:
             parser.error(str(exc))
         return 0
