@@ -39,6 +39,8 @@ def test_hermes_prompt_scopes_review_to_provided_artifacts():
     assert "environment" in prompt_lower
     assert "briefing/feedback flow" in prompt_lower
     assert "try, save, or ignore" in prompt
+    assert 'prefer no "try" item' in prompt_lower
+    assert "weak forced recommendation" in prompt_lower
     assert "at most three" in prompt_lower or "max three" in prompt_lower
 
 
