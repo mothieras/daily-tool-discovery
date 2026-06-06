@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from daily_tool_discovery.github_client import GitHubClient
@@ -114,6 +116,7 @@ def discover_curated_candidates(
 
     text_client = text_transport or UrllibTextTransport()
     github = github_client or GitHubClient(token=os.environ.get("GITHUB_TOKEN"))
+    metadata_delay_seconds = _metadata_delay_seconds(github_client)
     candidates_by_id: dict[str, Candidate] = {}
     per_source_limit = max(1, (limit + len(sources) - 1) // len(sources))
 
@@ -131,6 +134,8 @@ def discover_curated_candidates(
                 discovered_at=discovered_at,
                 github_client=github,
             )
+            if metadata_delay_seconds > 0:
+                time.sleep(metadata_delay_seconds)
             before_count = len(candidates_by_id)
             candidates_by_id.setdefault(candidate.id.lower(), candidate)
             if len(candidates_by_id) > before_count:
@@ -209,7 +214,7 @@ def _candidate_from_repo(
             kind=source.kind,
             source=source_name,
         )
-    except Exception:
+    except Exception as exc:
         return Candidate(
             id=f"github:{full_name}",
             name=full_name,
@@ -219,7 +224,11 @@ def _candidate_from_repo(
             tags=[],
             kind=_fallback_kind(full_name, source.kind),
             discovered_at=discovered_at,
-            metadata={"metadata_error": True},
+            metadata={
+                "metadata_error": True,
+                "metadata_error_type": type(exc).__name__,
+                **_metadata_error_details(exc),
+            },
         )
 
 
@@ -246,3 +255,19 @@ def _parse_kind(value: object, path: Path, context: str) -> CandidateKind:
     if kind not in CANDIDATE_KINDS:
         raise ValueError(f"Invalid sources config at {path}: {context} has invalid kind {kind!r}")
     return kind  # type: ignore[return-value]
+
+
+def _metadata_delay_seconds(github_client: GitHubClient | None) -> float:
+    if github_client is not None:
+        return 0.0
+    raw_value = os.environ.get("DAILY_TOOL_DISCOVERY_GITHUB_DELAY_SECONDS", "0.25")
+    try:
+        return max(float(raw_value), 0.0)
+    except ValueError:
+        return 0.25
+
+
+def _metadata_error_details(exc: Exception) -> dict[str, object]:
+    if isinstance(exc, HTTPError):
+        return {"metadata_error_status": exc.code}
+    return {}

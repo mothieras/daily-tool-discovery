@@ -57,7 +57,7 @@ Useful checks:
 hermes cron list
 ```
 
-Optional: export `GITHUB_TOKEN` before running the script if the server hits GitHub API rate limits.
+Strongly recommended: export `GITHUB_TOKEN` before running the script. Without it, GitHub allows only a low unauthenticated API quota, and curated source metadata may fall back to empty summaries with `metadata_error_status: 403`. Curated source metadata requests are throttled by default; tune `DAILY_TOOL_DISCOVERY_GITHUB_DELAY_SECONDS` if needed.
 
 Installed Hermes files:
 

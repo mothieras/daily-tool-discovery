@@ -51,6 +51,10 @@ cd "$ROOT"
 python -m pip install -U pip
 python -m pip install -e .
 
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "Warning: GITHUB_TOKEN is not set. GitHub metadata may hit low unauthenticated rate limits." >&2
+fi
+
 mkdir -p "$ROOT/seeds"
 if [[ ! -f "$ROOT/seeds/manual.jsonl" && -f "$ROOT/seeds/manual.example.jsonl" ]]; then
   cp "$ROOT/seeds/manual.example.jsonl" "$ROOT/seeds/manual.jsonl"

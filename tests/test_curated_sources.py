@@ -1,3 +1,5 @@
+from urllib.error import HTTPError
+
 from daily_tool_discovery.curated_sources import (
     CuratedSource,
     discover_curated_candidates,
@@ -42,6 +44,11 @@ class FakeGitHubClient:
         )
 
 
+class FakeHttpErrorGitHubClient:
+    def get_repository(self, full_name, discovered_at, kind, source):
+        raise HTTPError("https://api.github.com/repos/foo/bar", 403, "rate limit", {}, None)
+
+
 def test_extract_github_repos_deduplicates_markdown_links():
     repos = extract_github_repos(
         "- [A](https://github.com/foo/bar)\n"
@@ -76,6 +83,18 @@ def test_discover_curated_candidates_falls_back_when_metadata_fails():
 
     assert candidates[0].id == "github:foo/bar"
     assert candidates[0].metadata["metadata_error"] is True
+    assert candidates[0].metadata["metadata_error_type"] == "RuntimeError"
+
+
+def test_discover_curated_candidates_records_http_status_on_metadata_failure():
+    candidates = discover_curated_candidates(
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", kind="agent-dev-tool")],
+        discovered_at="2026-06-06",
+        text_transport=FakeTextTransport("https://github.com/foo/bar"),
+        github_client=FakeHttpErrorGitHubClient(),
+    )
+
+    assert candidates[0].metadata["metadata_error_status"] == 403
 
 
 def test_discover_curated_candidates_caps_each_source():
