@@ -24,6 +24,19 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
+## Server Hermes Install
+
+On a server that already has GitHub access and Hermes installed:
+
+```bash
+mkdir -p ~/apps
+gh repo clone mothieras/daily-tool-discovery ~/apps/daily-tool-discovery
+cd ~/apps/daily-tool-discovery
+bash scripts/install-hermes-server.sh --cron --deliver local
+```
+
+This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, runs one smoke discovery, and registers a no-agent Hermes cron job.
+
 ## Discover
 
 Run the live discovery pipeline:
