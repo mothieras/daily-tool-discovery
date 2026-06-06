@@ -43,6 +43,7 @@ ROOT="$ROOT"
 TODAY="\$(date +%F)"
 
 cd "\$ROOT"
+[ -f "\$HOME/.hermes/.env" ] && set -a && . "\$HOME/.hermes/.env" && set +a
 . "\$ROOT/.venv/bin/activate"
 daily-tool-discovery discover --root "\$ROOT" --date "\$TODAY" --limit "$LIMIT" >/dev/null
 cat "\$ROOT/briefings/\$TODAY.md"
