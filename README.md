@@ -14,7 +14,7 @@ The implemented v1 shape is a local deterministic briefing pipeline:
 - Rank and select candidates locally with deterministic rules.
 - Save inspectable Markdown and JSONL artifacts.
 
-Hermes invocation is not wired yet. `prompts/hermes-review.md` is a review prompt/interface artifact for a later integration, not something the current CLI executes. Today, `discover` can read curated source lists plus GitHub search config and write the candidate and briefing artifacts below.
+Hermes integration is available through a cron-friendly script plus the bundled `daily-tool-discovery` Hermes skill. The default server install can either deliver the generated briefing directly with no LLM call, or ask Hermes to review the briefing with the skill before delivery.
 
 ## Setup
 
@@ -36,6 +36,11 @@ bash scripts/install-hermes-server.sh --cron --deliver local
 ```
 
 This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, installs the `daily-tool-discovery` Hermes skill, runs one smoke discovery, and registers a no-agent Hermes cron job.
+
+Recommended modes:
+
+- `--cron`: fastest and cheapest. The CLI discovers candidates and Hermes delivers the generated briefing as-is.
+- `--agent-cron`: Hermes reviews the generated briefing with the installed skill before delivery.
 
 Use the agent-backed cron path if you want Hermes to review the generated briefing with the installed skill:
 

@@ -20,12 +20,14 @@ def test_readme_documents_dry_run_command():
     )
 
 
-def test_readme_documents_hermes_review_not_wired():
+def test_readme_documents_hermes_skill_cron_modes():
     readme = Path("README.md").read_text(encoding="utf-8").lower()
 
-    assert "hermes invocation is not wired" in readme
-    assert "prompts/hermes-review.md" in readme
-    assert "review prompt/interface artifact" in readme
+    assert "hermes integration is available" in readme
+    assert "daily-tool-discovery` hermes skill" in readme
+    assert "--cron" in readme
+    assert "--agent-cron" in readme
+    assert "no llm call" in readme
 
 
 def test_hermes_prompt_scopes_review_to_provided_artifacts():
