@@ -35,7 +35,15 @@ cd ~/apps/daily-tool-discovery
 bash scripts/install-hermes-server.sh --cron --deliver local
 ```
 
-This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, runs one smoke discovery, and registers a no-agent Hermes cron job.
+This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, installs the `daily-tool-discovery` Hermes skill, runs one smoke discovery, and registers a no-agent Hermes cron job.
+
+Use the agent-backed cron path if you want Hermes to review the generated briefing with the installed skill:
+
+```bash
+bash scripts/install-hermes-server.sh --agent-cron --deliver local
+```
+
+`--cron` is cheaper because it skips the LLM and delivers the generated briefing directly. `--agent-cron` spends Hermes model calls but lets Hermes apply the skill policy before delivering the result.
 
 Useful checks:
 
@@ -45,6 +53,11 @@ hermes cron list
 ```
 
 Optional: export `GITHUB_TOKEN` before running the script if the server hits GitHub API rate limits.
+
+Installed Hermes files:
+
+- `~/.hermes/scripts/daily-tool-discovery.sh`
+- `~/.hermes/skills/software-development/daily-tool-discovery/SKILL.md`
 
 ## Discover
 

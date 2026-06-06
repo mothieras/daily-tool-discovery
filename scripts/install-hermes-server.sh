@@ -9,11 +9,16 @@ LIMIT="${LIMIT:-40}"
 SCHEDULE="${SCHEDULE:-0 9 * * *}"
 DELIVER="${DELIVER:-local}"
 INSTALL_CRON=0
+INSTALL_AGENT_CRON=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --cron)
       INSTALL_CRON=1
+      shift
+      ;;
+    --agent-cron)
+      INSTALL_AGENT_CRON=1
       shift
       ;;
     --deliver)
@@ -34,6 +39,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ "$INSTALL_CRON" -eq 1 && "$INSTALL_AGENT_CRON" -eq 1 ]]; then
+  echo "Use either --cron or --agent-cron, not both." >&2
+  exit 2
+fi
 
 cd "$ROOT"
 "$PYTHON_BIN" -m venv .venv
@@ -56,6 +66,10 @@ cat "\$ROOT/briefings/\$TODAY.md"
 SH
 chmod +x "$HERMES_HOME/scripts/daily-tool-discovery.sh"
 
+mkdir -p "$HERMES_HOME/skills/software-development"
+rm -rf "$HERMES_HOME/skills/software-development/daily-tool-discovery"
+cp -R "$ROOT/hermes-skills/daily-tool-discovery" "$HERMES_HOME/skills/software-development/daily-tool-discovery"
+
 "$HERMES_HOME/scripts/daily-tool-discovery.sh" >/tmp/daily-tool-discovery-smoke.md
 
 if [[ "$INSTALL_CRON" -eq 1 ]]; then
@@ -66,6 +80,16 @@ if [[ "$INSTALL_CRON" -eq 1 ]]; then
     --deliver "$DELIVER"
 fi
 
+if [[ "$INSTALL_AGENT_CRON" -eq 1 ]]; then
+  "$HERMES_BIN" cron create "$SCHEDULE" \
+    --name daily-tool-discovery-agent \
+    --script daily-tool-discovery.sh \
+    --skill daily-tool-discovery \
+    --deliver "$DELIVER" \
+    "Review today's Daily Tool Discovery briefing. Pick at most one try item and up to two save items. Use the daily-tool-discovery skill and do not discover or install anything."
+fi
+
 echo "Installed Daily Tool Discovery at $ROOT"
 echo "Smoke output: /tmp/daily-tool-discovery-smoke.md"
 echo "Hermes script: $HERMES_HOME/scripts/daily-tool-discovery.sh"
+echo "Hermes skill: $HERMES_HOME/skills/software-development/daily-tool-discovery/SKILL.md"
