@@ -24,9 +24,9 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
-## Server Hermes Install
+## Fast Server Install
 
-On a server that already has GitHub access and Hermes installed:
+This repository is private. On a server with Hermes and GitHub CLI already logged in:
 
 ```bash
 mkdir -p ~/apps
@@ -36,6 +36,15 @@ bash scripts/install-hermes-server.sh --cron --deliver local
 ```
 
 This installs the package, writes `~/.hermes/scripts/daily-tool-discovery.sh`, runs one smoke discovery, and registers a no-agent Hermes cron job.
+
+Useful checks:
+
+```bash
+~/.hermes/scripts/daily-tool-discovery.sh
+hermes cron list
+```
+
+Optional: export `GITHUB_TOKEN` before running the script if the server hits GitHub API rate limits.
 
 ## Discover
 
