@@ -10,3 +10,4 @@ data/
 candidates/
 briefings/
 feedback.jsonl
+seeds/manual.jsonl
