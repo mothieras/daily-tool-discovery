@@ -91,11 +91,11 @@ fi
 
 if [[ "$INSTALL_AGENT_CRON" -eq 1 ]]; then
   "$HERMES_BIN" cron create "$SCHEDULE" \
+    "Review today's Daily Tool Discovery briefing. Pick at most one try item and up to two save items. Use the daily-tool-discovery skill and do not discover or install anything." \
     --name daily-tool-discovery-agent \
     --script daily-tool-discovery.sh \
     --skill daily-tool-discovery \
-    --deliver "$DELIVER" \
-    "Review today's Daily Tool Discovery briefing. Pick at most one try item and up to two save items. Use the daily-tool-discovery skill and do not discover or install anything."
+    --deliver "$DELIVER"
 fi
 
 echo "Installed Daily Tool Discovery at $ROOT"
