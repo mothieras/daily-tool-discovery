@@ -35,20 +35,18 @@ def test_candidate_decision_round_trips_to_json_dict():
     assert restored == decision
 
 
-def test_candidate_rejects_invalid_kind():
-    with pytest.raises(ValueError):
-        Candidate.from_dict(
-            {
-                "id": "github:example/tool",
-                "name": "tool",
-                "url": "https://github.com/example/tool",
-                "source": "github",
-                "summary": "Example tool",
-                "tags": [],
-                "kind": "invalid",
-                "discovered_at": "2026-06-05",
-            }
-        )
+def test_candidate_accepts_freeform_kind():
+    c = Candidate(
+        id="github:a/b", name="a/b", url="u", source="s", summary="",
+        tags=[], kind="skills-plugins", discovered_at="2026-06-07",
+    )
+    assert c.kind == "skills-plugins"
+
+
+def test_explore_is_a_valid_decision_action():
+    from daily_tool_discovery.models import CandidateDecision
+    d = CandidateDecision(candidate_id="x", action="explore", score=5, reason="r")
+    assert d.action == "explore"
 
 
 def test_candidate_decision_rejects_invalid_action():

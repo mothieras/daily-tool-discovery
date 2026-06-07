@@ -6,15 +6,10 @@ from types import MappingProxyType
 from typing import Any, Literal
 
 
-CandidateKind = Literal["agent-dev-tool", "open-source-small-tool", "other"]
-DecisionAction = Literal["try", "save", "ignore", "review"]
+CandidateKind = str  # free-form provenance label (a profile category name, or "other")
+DecisionAction = Literal["try", "save", "ignore", "review", "explore"]
 
-CANDIDATE_KINDS: tuple[CandidateKind, ...] = (
-    "agent-dev-tool",
-    "open-source-small-tool",
-    "other",
-)
-DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore", "review")
+DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore", "review", "explore")
 
 
 @dataclass(frozen=True)
@@ -30,8 +25,6 @@ class Candidate:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.kind not in CANDIDATE_KINDS:
-            raise ValueError(f"invalid candidate kind: {self.kind}")
         object.__setattr__(self, "tags", tuple(self.tags))
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
 
