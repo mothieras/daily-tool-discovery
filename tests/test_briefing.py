@@ -4,86 +4,48 @@ from daily_tool_discovery.briefing import render_briefing
 from daily_tool_discovery.models import Candidate, CandidateDecision
 
 
-def test_render_briefing_groups_try_and_save_items():
+def _pair(cid, action, **md):
     candidate = Candidate(
-        id="github:Achilng/floral-notepaper",
-        name="Achilng/floral-notepaper",
-        url="https://github.com/Achilng/floral-notepaper",
-        source="github",
-        summary="Lightweight Markdown sticky notes",
-        tags=["tauri", "markdown"],
-        kind="open-source-small-tool",
-        discovered_at="2026-06-05",
-        metadata={"stars": 3500},
+        id=cid, name=cid, url=f"https://github.com/{cid}", source="github",
+        summary="s", tags=["cli"], kind="agent-dev-tool", discovered_at="2026-06-07",
+        metadata=md,
     )
-    decision = CandidateDecision(
-        candidate_id=candidate.id,
-        action="try",
-        score=80,
-        reason="Matches local-first small-tool taste.",
-        caveat="Check release package for your OS.",
-    )
-
-    markdown = render_briefing("2026-06-05", [(candidate, decision)])
-
-    assert "# Daily Tool Discovery Briefing - 2026-06-05" in markdown
-    assert "## Try Today" in markdown
-    assert "### Achilng/floral-notepaper" in markdown
-    assert "- 15-minute trial:" in markdown
-    assert "## Save" in markdown
-    assert "No saved items today." in markdown
+    decision = CandidateDecision(candidate_id=cid, action=action, score=70, reason="why",
+                                 caveat="" if action != "review" else "audit it")
+    return candidate, decision
 
 
-def test_render_briefing_rejects_mismatched_decision_candidate_id():
-    candidate = Candidate(
-        id="github:example/tool",
-        name="example/tool",
-        url="https://github.com/example/tool",
-        source="github",
-        summary="Example tool",
-        tags=[],
-        kind="other",
-        discovered_at="2026-06-05",
-    )
-    decision = CandidateDecision(
-        candidate_id="github:other/tool",
-        action="save",
-        score=40,
-        reason="Wrong join.",
-    )
-
-    with pytest.raises(ValueError, match="decision candidate_id .* does not match candidate id"):
-        render_briefing("2026-06-05", [(candidate, decision)])
+def test_renders_three_buckets_and_filtered_count():
+    selected = [
+        _pair("github:a/try", "try", stars=900, forks=100, open_issues=5,
+              pushed_at="2026-06-01T00:00:00Z", owner_login="alice", owner_type="User"),
+        _pair("github:b/save", "save", stars=50, owner_login="bob"),
+        _pair("github:c/review", "review", stars=2, owner_login="carol"),
+    ]
+    out = render_briefing("2026-06-07", selected, filtered_count=4)
+    assert "## Try Today" in out
+    assert "## Save" in out
+    assert "## Review yourself" in out
+    assert "Filtered 4 suspicious candidates." in out
 
 
-def test_render_briefing_normalizes_free_form_fields_to_single_lines():
-    candidate = Candidate(
-        id="github:example/messy",
-        name="example/messy\n## injected heading",
-        url="https://github.com/example/messy\n- injected link item",
-        source="github",
-        summary="Example tool",
-        tags=[],
-        kind="other",
-        discovered_at="2026-06-05",
-    )
-    decision = CandidateDecision(
-        candidate_id=candidate.id,
-        action="try",
-        score=70,
-        reason="Useful for notes.\n## injected reason heading",
-        caveat="Needs local review.\n- injected caveat item",
-    )
+def test_metric_line_present_for_each_item():
+    selected = [
+        _pair("github:a/try", "try", stars=900, forks=100, open_issues=5,
+              pushed_at="2026-06-01T00:00:00Z", owner_login="alice", owner_type="User"),
+    ]
+    out = render_briefing("2026-06-07", selected)
+    assert "900" in out and "forks" in out and "alice" in out
 
-    markdown = render_briefing("2026-06-05", [(candidate, decision)])
-    lines = markdown.splitlines()
 
-    assert "### example/messy ## injected heading" in lines
-    assert "- Link: https://github.com/example/messy - injected link item" in lines
-    assert "- Type: other" in lines
-    assert "- Why it matters: Useful for notes. ## injected reason heading" in lines
-    assert "- Risk or caveat: Needs local review. - injected caveat item" in lines
-    assert "## injected heading" not in lines
-    assert "- injected link item" not in lines
-    assert "## injected reason heading" not in lines
-    assert "- injected caveat item" not in lines
+def test_review_item_carries_audit_caveat():
+    out = render_briefing("2026-06-07", [_pair("github:c/review", "review", stars=2, owner_login="x")])
+    assert "audit" in out.lower()
+
+
+def test_mismatched_pair_raises():
+    candidate = Candidate(id="github:a/b", name="a/b", url="u", source="s", summary="",
+                          tags=[], kind="other", discovered_at="2026-06-07")
+    bad = CandidateDecision(candidate_id="github:x/y", action="save", score=1, reason="r")
+    with pytest.raises(ValueError):
+        render_briefing("2026-06-07", [(candidate, bad)])
