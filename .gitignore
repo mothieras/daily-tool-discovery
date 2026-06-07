@@ -10,4 +10,7 @@ data/
 candidates/
 briefings/
 feedback.jsonl
+history.jsonl
+denylist.txt
+config/profile.toml
 seeds/manual.jsonl
