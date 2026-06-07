@@ -1,63 +1,81 @@
+# Curated sources are awesome-list READMEs that densely link external github.com/owner/repo
+# URLs (the extractor pulls those out). Lists vetted 2026-06-07 — repo-yield counts in
+# comments. Dropped because they no longer yield external repo links via the README:
+#   hesreallyhim/awesome-claude-code (0, README is a stub), github/awesome-copilot (1,
+#   prompts not repos), VoltAgent/awesome-codex-subagents (2, monorepo). Skill monorepos
+#   (anthropics/skills, mattpocock/skills) don't fit this mechanism either.
+
+# --- Agent / dev tooling (mainline) ---
+
 [[sources]]
 name = "awesome-mcp-servers"
 url = "https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md"
-kind = "agent-dev-tool"
+kind = "agent-dev-tool"  # ~2552 repos
+
+[[sources]]
+name = "awesome-mcp-servers-wong2"
+url = "https://raw.githubusercontent.com/wong2/awesome-mcp-servers/main/README.md"
+kind = "agent-dev-tool"  # ~486 repos
 
 [[sources]]
 name = "awesome-hermes-agent"
 url = "https://raw.githubusercontent.com/0xNyk/awesome-hermes-agent/main/README.md"
-kind = "agent-dev-tool"
-
-[[sources]]
-name = "awesome-claude-code"
-url = "https://raw.githubusercontent.com/hesreallyhim/awesome-claude-code/main/README.md"
-kind = "agent-dev-tool"
-
-[[sources]]
-name = "awesome-codex-subagents"
-url = "https://raw.githubusercontent.com/VoltAgent/awesome-codex-subagents/main/README.md"
-kind = "agent-dev-tool"
-
-[[sources]]
-name = "awesome-copilot"
-url = "https://raw.githubusercontent.com/github/awesome-copilot/main/README.md"
-kind = "agent-dev-tool"
-
-[[sources]]
-name = "awesome-agent-skills"
-url = "https://raw.githubusercontent.com/VoltAgent/awesome-agent-skills/main/README.md"
-kind = "agent-dev-tool"
+kind = "agent-dev-tool"  # ~117 repos
 
 [[sources]]
 name = "awesome-ai-agents"
 url = "https://raw.githubusercontent.com/e2b-dev/awesome-ai-agents/main/README.md"
-kind = "agent-dev-tool"
+kind = "agent-dev-tool"  # ~118 repos
+
+[[sources]]
+name = "awesome-agent-skills"
+url = "https://raw.githubusercontent.com/VoltAgent/awesome-agent-skills/main/README.md"
+kind = "agent-dev-tool"  # ~133 repos
+
+# --- Open-source small tools (secondary line) ---
+
+[[sources]]
+name = "awesome-tauri"
+url = "https://raw.githubusercontent.com/tauri-apps/awesome-tauri/dev/README.md"
+kind = "open-source-small-tool"  # ~344 repos (note: 'dev' branch)
+
+[[sources]]
+name = "awesome-tuis"
+url = "https://raw.githubusercontent.com/rothgar/awesome-tuis/main/README.md"
+kind = "open-source-small-tool"  # ~600 repos
 
 [[sources]]
 name = "awesome-cli-apps"
-url = "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
-kind = "open-source-small-tool"
+url = "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/README.md"
+kind = "open-source-small-tool"  # ~458 repos
 
 [[sources]]
 name = "awesome-mac"
 url = "https://raw.githubusercontent.com/jaywcjlove/awesome-mac/master/README.md"
-kind = "open-source-small-tool"
+kind = "open-source-small-tool"  # ~575 repos
 
-[[sources]]
-name = "awesome-selfhosted"
-url = "https://raw.githubusercontent.com/awesome-selfhosted/awesome-selfhosted/master/README.md"
-kind = "open-source-small-tool"
+# GitHub Search: topic-qualified + time-bounded for *fresh* discovery. `created:>DATE`
+# surfaces new-but-already-validated repos; `pushed:>DATE` surfaces maintained ones.
+# min_stars appends `stars:>=N` so brand-new junk never enters. Bump the dates
+# periodically (or switch to dynamic windows — see plan follow-up).
 
 [[github_search]]
-name = "agent-dev-mainline"
-query = "agent mcp ai-coding CLI tool"
+name = "fresh-agent-tools"
+query = "topic:mcp created:>2026-03-01"
 kind = "agent-dev-tool"
 per_page = 10
-min_stars = 20
+min_stars = 50
 
 [[github_search]]
-name = "local-first-small-tools"
-query = "tauri markdown local-first macos notes"
+name = "maintained-agent-tools"
+query = "topic:ai-agent pushed:>2026-04-01"
+kind = "agent-dev-tool"
+per_page = 10
+min_stars = 100
+
+[[github_search]]
+name = "fresh-local-first-tools"
+query = "topic:tauri created:>2026-01-01"
 kind = "open-source-small-tool"
 per_page = 10
-min_stars = 20
+min_stars = 30
