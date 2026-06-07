@@ -60,17 +60,15 @@ def test_load_manual_seeds_rejects_string_tags_with_file_line_context(tmp_path):
     assert "tags" in message
 
 
-def test_load_manual_seeds_invalid_kind_includes_file_line_context(tmp_path):
+def test_load_manual_seeds_accepts_freeform_kind(tmp_path):
+    # kind is now a free-form provenance label (a profile category name, or "other"),
+    # so any string is valid — no validation error.
     path = tmp_path / "manual.jsonl"
     path.write_text(
-        '{"name":"CodeIsland","url":"https://example.com/codeisland","kind":"invalid"}\n',
+        '{"name":"CodeIsland","url":"https://example.com/codeisland","kind":"whatever"}\n',
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError) as exc_info:
-        load_manual_seeds(path, discovered_at="2026-06-05")
+    seeds = load_manual_seeds(path, discovered_at="2026-06-05")
 
-    message = str(exc_info.value)
-    assert str(path) in message
-    assert ":1:" in message
-    assert "kind" in message
+    assert seeds[0].kind == "whatever"
