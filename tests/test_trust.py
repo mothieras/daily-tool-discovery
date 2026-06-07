@@ -1,0 +1,79 @@
+from datetime import date
+
+from daily_tool_discovery.config import TrustConfig
+from daily_tool_discovery.models import Candidate
+from daily_tool_discovery.trust import assess_trust, annotate_trust, is_auto_generated_login
+
+TODAY = date(2026, 6, 7)
+CFG = TrustConfig()
+
+
+def _candidate(**md):
+    return Candidate(
+        id="github:o/r", name="o/r", url="https://github.com/o/r",
+        source="github_search:x", summary="s", tags=["cli"], kind="agent-dev-tool",
+        discovered_at="2026-06-07", metadata=md,
+    )
+
+
+def test_auto_generated_login_matches_random_word_word_digits():
+    assert is_auto_generated_login("BlueElephant42") is True
+    assert is_auto_generated_login("SilverMountain7788") is True
+
+
+def test_auto_generated_login_false_positives_guarded():
+    assert is_auto_generated_login("John2024") is False   # single word + digits
+    assert is_auto_generated_login("torvalds") is False
+    assert is_auto_generated_login("facebook") is False
+    assert is_auto_generated_login("BlueElephant") is False  # no digits
+
+
+def test_reject_requires_full_malware_fingerprint():
+    c = _candidate(
+        stars=0, forks=0, created_at="2026-06-05T00:00:00Z",
+        pushed_at="2026-06-05T00:00:00Z", owner_login="BlueElephant42",
+    )
+    assert assess_trust(c, TODAY, CFG).tier == "reject"
+
+
+def test_single_signal_does_not_reject():
+    # auto-gen name but has community and is old -> not reject
+    c = _candidate(
+        stars=300, forks=40, created_at="2023-01-01T00:00:00Z",
+        pushed_at="2026-06-01T00:00:00Z", owner_login="BlueElephant42",
+    )
+    assert assess_trust(c, TODAY, CFG).tier == "trusted"
+
+
+def test_trusted_requires_stars_floor_not_archived_and_maintained():
+    c = _candidate(stars=25, forks=5, created_at="2024-01-01T00:00:00Z",
+                   pushed_at="2026-05-01T00:00:00Z", owner_login="alice")
+    assert assess_trust(c, TODAY, CFG).tier == "trusted"
+
+
+def test_low_star_on_topic_is_review_not_reject():
+    c = _candidate(stars=3, forks=1, created_at="2025-01-01T00:00:00Z",
+                   pushed_at="2026-05-01T00:00:00Z", owner_login="alice")
+    assert assess_trust(c, TODAY, CFG).tier == "review"
+
+
+def test_archived_or_stale_popular_is_review():
+    archived = _candidate(stars=900, forks=100, created_at="2019-01-01T00:00:00Z",
+                          pushed_at="2026-05-01T00:00:00Z", owner_login="alice", archived=True)
+    assert assess_trust(archived, TODAY, CFG).tier == "review"
+    stale = _candidate(stars=900, forks=100, created_at="2017-01-01T00:00:00Z",
+                       pushed_at="2021-01-01T00:00:00Z", owner_login="alice")
+    assert assess_trust(stale, TODAY, CFG).tier == "review"
+
+
+def test_missing_pushed_at_cannot_be_trusted():
+    c = _candidate(stars=900, forks=100, created_at="2020-01-01T00:00:00Z", owner_login="alice")
+    assert assess_trust(c, TODAY, CFG).tier == "review"
+
+
+def test_annotate_trust_writes_tier_and_flags():
+    c = _candidate(stars=0, forks=0, created_at="2026-06-05T00:00:00Z",
+                   pushed_at="2026-06-05T00:00:00Z", owner_login="BlueElephant42")
+    annotated = annotate_trust(c, assess_trust(c, TODAY, CFG))
+    assert annotated.metadata["trust_tier"] == "reject"
+    assert "auto-generated-username" in annotated.metadata["risk_flags"]
