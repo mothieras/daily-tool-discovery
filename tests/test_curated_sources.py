@@ -122,6 +122,35 @@ def test_discover_curated_candidates_records_http_status_on_metadata_failure():
     assert candidates[0].metadata["metadata_error_status"] == 403
 
 
+def test_curated_explicit_delay_applies_even_with_injected_client(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr(
+        "daily_tool_discovery.curated_sources.time.sleep", lambda s: slept.append(s)
+    )
+    discover_curated_candidates(
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", category="agent-dev-tool")],
+        discovered_at="2026-06-06",
+        text_transport=FakeTextTransport("https://github.com/foo/bar"),
+        github_client=FakeGitHubClient(),
+        metadata_delay_seconds=0.5,
+    )
+    assert slept == [0.5]   # explicit throttle survives a shared/injected client
+
+
+def test_curated_injected_client_defaults_to_no_delay(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr(
+        "daily_tool_discovery.curated_sources.time.sleep", lambda s: slept.append(s)
+    )
+    discover_curated_candidates(
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", category="agent-dev-tool")],
+        discovered_at="2026-06-06",
+        text_transport=FakeTextTransport("https://github.com/foo/bar"),
+        github_client=FakeGitHubClient(),
+    )
+    assert slept == []   # backward-compatible default: injected client => no self-throttle
+
+
 def test_discover_curated_candidates_caps_each_source():
     candidates = discover_curated_candidates(
         [

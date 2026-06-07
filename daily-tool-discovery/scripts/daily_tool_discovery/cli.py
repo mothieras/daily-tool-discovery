@@ -9,6 +9,7 @@ from typing import Any, Iterable
 
 from daily_tool_discovery.briefing import render_briefing
 from daily_tool_discovery.curated_sources import (
+    default_metadata_delay_seconds,
     discover_curated_candidates,
     discover_github_search_candidates,
 )
@@ -60,7 +61,10 @@ def run_discover(
     github_quota = _github_search_quota(limit, has_github_searches=bool(all_searches))
     curated_quota = max(limit - github_quota, 0)
 
-    candidates = discover_curated_candidates(all_sources, discovered_at=current_date, limit=curated_quota)
+    candidates = discover_curated_candidates(
+        all_sources, discovered_at=current_date, limit=curated_quota,
+        github_client=github, metadata_delay_seconds=default_metadata_delay_seconds(),
+    )
     candidates.extend(
         discover_github_search_candidates(all_searches, discovered_at=current_date, limit=github_quota, github_client=github)
     )

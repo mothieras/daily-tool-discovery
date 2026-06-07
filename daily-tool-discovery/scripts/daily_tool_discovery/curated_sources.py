@@ -75,13 +75,18 @@ def discover_curated_candidates(
     limit: int = 80,
     text_transport: TextTransport | None = None,
     github_client: GitHubClient | None = None,
+    metadata_delay_seconds: float | None = None,
 ) -> list[Candidate]:
     if not sources or limit <= 0:
         return []
 
     text_client = text_transport or UrllibTextTransport()
     github = github_client or GitHubClient(token=os.environ.get("GITHUB_TOKEN"))
-    metadata_delay_seconds = _metadata_delay_seconds(github_client)
+    delay = (
+        metadata_delay_seconds
+        if metadata_delay_seconds is not None
+        else _metadata_delay_seconds(github_client)
+    )
     candidates_by_id: dict[str, Candidate] = {}
     per_source_limit = max(1, (limit + len(sources) - 1) // len(sources))
 
@@ -99,8 +104,8 @@ def discover_curated_candidates(
                 discovered_at=discovered_at,
                 github_client=github,
             )
-            if metadata_delay_seconds > 0:
-                time.sleep(metadata_delay_seconds)
+            if delay > 0:
+                time.sleep(delay)
             before_count = len(candidates_by_id)
             candidates_by_id.setdefault(candidate.id.lower(), candidate)
             if len(candidates_by_id) > before_count:
@@ -207,14 +212,21 @@ def _is_curated_list_repo(full_name: str) -> bool:
     return repo_name == "awesome" or repo_name.startswith("awesome-")
 
 
-def _metadata_delay_seconds(github_client: GitHubClient | None) -> float:
-    if github_client is not None:
-        return 0.0
+def default_metadata_delay_seconds() -> float:
+    """Per-repo self-throttle for metadata fetches, configurable via env."""
     raw_value = os.environ.get("DAILY_TOOL_DISCOVERY_GITHUB_DELAY_SECONDS", "0.25")
     try:
         return max(float(raw_value), 0.0)
     except ValueError:
         return 0.25
+
+
+def _metadata_delay_seconds(github_client: GitHubClient | None) -> float:
+    # Back-compat default: an injected client signals the caller owns rate
+    # control, so don't add a delay unless one is requested explicitly.
+    if github_client is not None:
+        return 0.0
+    return default_metadata_delay_seconds()
 
 
 def _metadata_error_details(exc: Exception) -> dict[str, object]:
