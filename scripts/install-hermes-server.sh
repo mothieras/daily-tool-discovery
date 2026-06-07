@@ -28,6 +28,8 @@ fi
 rm -rf "$SKILL_DIR"
 mkdir -p "$(dirname "$SKILL_DIR")"
 cp -r "$ROOT/daily-tool-discovery" "$SKILL_DIR"
+# Don't ship compiled-bytecode caches with the skill (run.py also sets dont_write_bytecode).
+find "$SKILL_DIR" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 # Create the data root and seed it by running the skill once (dry-run needs no token;
 # it also triggers ensure_data_root to copy the example profile + seed into the data root).

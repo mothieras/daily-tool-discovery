@@ -2,6 +2,8 @@
 name: daily-tool-discovery
 description: "Use when reviewing or generating the Daily Tool Discovery briefing — runs the bundled pipeline to surface trust-vetted dev/CLI/MCP tools and select try/save items."
 version: 0.2.0
+author: Mothieras
+license: MIT
 metadata:
   hermes:
     tags: [discovery, dev-tools, mcp, cli, briefing]

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Entry point for the self-contained Daily Tool Discovery skill."""
 import sys
+
+sys.dont_write_bytecode = True  # keep the installed skill dir free of __pycache__
+
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent        # .../daily-tool-discovery/scripts
