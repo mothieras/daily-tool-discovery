@@ -50,6 +50,25 @@ A briefing has five sections:
 - **🎲 Explore** — one deliberately off-profile, trust-vetted pick to break the filter bubble.
 - A footer reports how many suspicious candidates were filtered out.
 
+## Use as a skill (no install)
+
+The project is stdlib-only and self-contained, so you can run it with zero install.
+Drop or clone the folder anywhere (or into an agent's skill directory), make sure
+`python3` is 3.11+ and a `GITHUB_TOKEN` is exported, then run the bundled entry point:
+
+```bash
+export GITHUB_TOKEN=ghp_...
+python3 run.py discover
+```
+
+`run.py` works whether the package sits under `src/` (this repo) or flattened next to
+`run.py` (a skill bundle). State lives in `~/.daily-tool-discovery` (override with
+`DAILY_TOOL_DISCOVERY_HOME`); the first run copies the example profile and seed there, and
+the briefing is written to `~/.daily-tool-discovery/briefings/<today>.md`. `dry-run`,
+`save`, `deny`, and `feedback` run the same way (`python3 run.py dry-run`).
+
+If you prefer a `pip`-installed console script instead, use the path below.
+
 ## Setup
 
 ```bash
