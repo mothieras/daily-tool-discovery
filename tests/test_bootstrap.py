@@ -18,12 +18,11 @@ def test_default_data_root_falls_back_to_home(monkeypatch, tmp_path):
 
 def _make_bundle(tmp_path: Path) -> Path:
     bundle = tmp_path / "bundle"
-    (bundle / "config").mkdir(parents=True)
-    (bundle / "seeds").mkdir(parents=True)
-    (bundle / "config" / "profile.example.toml").write_text(
+    (bundle / "templates").mkdir(parents=True)
+    (bundle / "templates" / "profile.example.toml").write_text(
         "[meta]\nname = \"example\"\n", encoding="utf-8"
     )
-    (bundle / "seeds" / "manual.example.jsonl").write_text(
+    (bundle / "templates" / "manual.example.jsonl").write_text(
         "{\"name\":\"seed\"}\n", encoding="utf-8"
     )
     return bundle

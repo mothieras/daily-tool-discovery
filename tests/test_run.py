@@ -12,8 +12,9 @@ def test_run_dry_run_smoke(tmp_path):
     env = dict(os.environ)
     env["DAILY_TOOL_DISCOVERY_HOME"] = str(home)
 
+    run_py = repo_root / "daily-tool-discovery" / "scripts" / "run.py"
     result = subprocess.run(
-        [sys.executable, "run.py", "dry-run"],
+        [sys.executable, str(run_py), "dry-run"],
         cwd=repo_root,
         env=env,
         capture_output=True,

@@ -171,7 +171,7 @@ def test_annotate_taste_noop_when_no_learned_tags():
 
 
 def test_shipped_example_profile_loads():
-    prof = load_profile(Path("config/profile.example.toml"))
+    prof = load_profile(Path("daily-tool-discovery/templates/profile.example.toml"))
     names = [c.name for c in prof.categories]
     assert "agent-dev" in names
     agent = next(c for c in prof.categories if c.name == "agent-dev")

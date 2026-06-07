@@ -10,8 +10,8 @@ def test_readme_documents_dry_run_command():
     assert "daily-tool-discovery discover" in readme
     assert "daily-tool-discovery dry-run" in readme
     assert "daily-tool-discovery feedback" in readme
-    assert "config/profile.example.toml" in readme
-    assert "seeds/manual.example.jsonl" in readme
+    assert "templates/profile.example.toml" in readme
+    assert "templates/manual.example.jsonl" in readme
     assert "candidates/YYYY-MM-DD.jsonl" in readme
     assert "briefings/YYYY-MM-DD.md" in readme
     assert (
@@ -58,7 +58,7 @@ def test_cli_help_documents_dry_run_and_feedback_commands():
 
 
 def test_skill_states_trust_floor():
-    text = Path("hermes-skills/daily-tool-discovery/SKILL.md").read_text(encoding="utf-8")
+    text = Path("daily-tool-discovery/SKILL.md").read_text(encoding="utf-8")
     assert "20" in text  # the stars floor
     assert "Review yourself" in text
     assert "do not run blindly" in text.lower() or "audit" in text.lower()
@@ -70,7 +70,7 @@ def test_readme_documents_review_bucket():
 
 
 def test_skill_documents_profile_operations():
-    text = Path("hermes-skills/daily-tool-discovery/SKILL.md").read_text(encoding="utf-8")
+    text = Path("daily-tool-discovery/SKILL.md").read_text(encoding="utf-8")
     assert "profile.toml" in text
     assert "deny" in text and "save" in text
     assert "Explore" in text
@@ -84,6 +84,6 @@ def test_readme_documents_profile_and_explore():
 
 def test_example_profiles_load():
     from daily_tool_discovery.profile import load_profile
-    for p in ["config/profile.example.toml", "config/profiles/web-frontend.example.toml"]:
+    for p in ["daily-tool-discovery/templates/profile.example.toml", "daily-tool-discovery/templates/profiles/web-frontend.example.toml"]:
         prof = load_profile(Path(p))
         assert prof.categories

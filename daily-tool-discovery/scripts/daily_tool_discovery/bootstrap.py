@@ -14,10 +14,10 @@ def ensure_data_root(data_root: Path, bundle_dir: Path) -> None:
     (data_root / "config").mkdir(parents=True, exist_ok=True)
     (data_root / "seeds").mkdir(parents=True, exist_ok=True)
     prof = data_root / "config" / "profile.toml"
-    example = bundle_dir / "config" / "profile.example.toml"
+    example = bundle_dir / "templates" / "profile.example.toml"
     if not prof.exists() and example.exists():
         shutil.copy(example, prof)
     seed = data_root / "seeds" / "manual.jsonl"
-    seed_example = bundle_dir / "seeds" / "manual.example.jsonl"
+    seed_example = bundle_dir / "templates" / "manual.example.jsonl"
     if not seed.exists() and seed_example.exists():
         shutil.copy(seed_example, seed)
