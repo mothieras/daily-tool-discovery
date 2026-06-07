@@ -87,6 +87,16 @@ def test_discover_promotes_trusted_and_quarantines_malware(tmp_path, monkeypatch
     assert "carol/tiny" in briefing.split("## Review yourself")[1].split("## 🎲 Explore")[0]
 
 
+def test_briefing_filtered_line_names_repos_and_reasons(tmp_path, monkeypatch):
+    _write_profile(tmp_path)
+    _run(tmp_path, monkeypatch)
+    briefing = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
+    line = next(l for l in briefing.splitlines() if l.startswith("Filtered"))
+    # the rejected repo is named with its reason, not just counted
+    assert "BlueElephant42/x" in line
+    assert "no-community" in line
+
+
 def test_inbox_has_trust_tier_and_relevance(tmp_path, monkeypatch):
     _write_profile(tmp_path)
     _run(tmp_path, monkeypatch)

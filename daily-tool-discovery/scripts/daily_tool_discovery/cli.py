@@ -40,7 +40,7 @@ def run_dry_run(root: Path, date: str | None = None) -> None:
     candidates = load_manual_seeds(seed_path, discovered_at=current_date)
     _write_jsonl(root / "candidates" / f"{current_date}.jsonl", [c.to_dict() for c in candidates])
     selected = select_from_pool(candidates, today=today)
-    _write_briefing(root, current_date, selected, filtered_count=0)
+    _write_briefing(root, current_date, selected)
 
 
 def run_discover(
@@ -83,8 +83,7 @@ def run_discover(
     _write_jsonl(root / "candidates" / f"{current_date}.jsonl", [c.to_dict() for c in candidates])
 
     deny = load_denylist(root / "denylist.txt", profile.deny)
-    rejected_count = sum(1 for c in candidates
-                         if c.metadata.get("trust_tier") == "reject" or is_denied(c.id, deny))
+    filtered = _filtered_items(candidates)
 
     recent = load_recent_surfaced_ids(root / "history.jsonl", today, profile.trust.novelty_days)
     selectable = [
@@ -99,11 +98,11 @@ def run_discover(
     review = [c for c in selectable if c.metadata.get("trust_tier") == "review"]
 
     trusted, review, demoted = _enrich_finalists(trusted, review, github, today, profile)
-    rejected_count += demoted
+    filtered.extend((c.name, "suspicious-publisher") for c in demoted)
 
     selected = select_daily_candidates(trusted, review, today=today,
                                        explore_slots=profile.recommend.explore_slots)
-    _write_briefing(root, current_date, selected, filtered_count=rejected_count)
+    _write_briefing(root, current_date, selected, filtered=filtered)
     record_surfaced(root / "history.jsonl", current_date, selected)
 
 
@@ -125,7 +124,7 @@ def run_deny(root: Path, pattern: str) -> None:
 
 def _enrich_finalists(trusted, review, github, today, profile):
     finalists = trusted[:6] + review[:6]
-    demoted = 0
+    demoted: list[Candidate] = []
     bad_ids: set[str] = set()
     for candidate in finalists:
         login = str(candidate.metadata.get("owner_login") or "")
@@ -137,7 +136,7 @@ def _enrich_finalists(trusted, review, github, today, profile):
             continue
         if publisher_is_suspicious(user, today, profile.trust):
             bad_ids.add(candidate.id)
-            demoted += 1
+            demoted.append(candidate)
     trusted = [c for c in trusted if c.id not in bad_ids]
     review = [c for c in review if c.id not in bad_ids]
     return trusted, review, demoted
@@ -158,10 +157,24 @@ def _build_candidate_index(root: Path) -> dict[str, Candidate]:
     return index
 
 
-def _write_briefing(root, current_date, selected, filtered_count) -> None:
+def _filtered_items(candidates) -> list[tuple[str, str]]:
+    """Repos dropped by the trust gate, paired with a human-readable reason.
+
+    Denylisted repos are deliberately excluded: `deny` means "never surfaced",
+    so naming them here would re-surface what the user asked to forget.
+    """
+    items: list[tuple[str, str]] = []
+    for c in candidates:
+        if c.metadata.get("trust_tier") == "reject":
+            flags = c.metadata.get("risk_flags") or []
+            items.append((c.name, "+".join(str(f) for f in flags) if flags else "low-trust"))
+    return items
+
+
+def _write_briefing(root, current_date, selected, filtered=()) -> None:
     briefing_path = root / "briefings" / f"{current_date}.md"
     briefing_path.parent.mkdir(parents=True, exist_ok=True)
-    briefing_path.write_text(render_briefing(current_date, selected, filtered_count=filtered_count), encoding="utf-8")
+    briefing_path.write_text(render_briefing(current_date, selected, filtered=filtered), encoding="utf-8")
 
 
 def _load_optional_manual_seeds(root, discovered_at) -> list[Candidate]:

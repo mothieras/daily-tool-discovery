@@ -1,12 +1,27 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from daily_tool_discovery.models import Candidate, CandidateDecision
+
+_FILTERED_NAME_CAP = 10
+
+
+def _filtered_line(filtered: Sequence[tuple[str, str]]) -> str:
+    count = len(filtered)
+    if count == 0:
+        return "Filtered 0 suspicious candidates."
+    shown = filtered[:_FILTERED_NAME_CAP]
+    detail = ", ".join(f"{name} ({reason})" for name, reason in shown)
+    more = count - len(shown)
+    suffix = f", +{more} more" if more > 0 else ""
+    return f"Filtered {count}: {detail}{suffix}"
 
 
 def render_briefing(
     date: str,
     selected: list[tuple[Candidate, CandidateDecision]],
-    filtered_count: int = 0,
+    filtered: Sequence[tuple[str, str]] = (),
 ) -> str:
     _validate_pairs(selected)
     try_items = [(c, d) for c, d in selected if d.action == "try"]
@@ -21,7 +36,7 @@ def render_briefing(
     lines.extend(_render_section("Review yourself", review_items, "No items need manual review today.", include_trial=False))
     lines.extend(_render_section("🎲 Explore", explore_items, "No exploration pick today.", include_trial=False))
     lines.extend(_render_section("Ignore", ignore_items, "No explicit ignores today.", include_trial=False))
-    lines.append(f"Filtered {filtered_count} suspicious candidates.")
+    lines.append(_filtered_line(filtered))
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
