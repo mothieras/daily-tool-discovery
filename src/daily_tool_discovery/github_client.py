@@ -83,8 +83,15 @@ def candidate_from_github_payload(
         discovered_at=discovered_at,
         metadata={
             "stars": int(item.get("stargazers_count") or 0),
-            "language": item.get("language"),
+            "forks": int(item.get("forks_count") or 0),
+            "open_issues": int(item.get("open_issues_count") or 0),
+            "created_at": item.get("created_at"),
             "pushed_at": item.get("pushed_at"),
+            "language": item.get("language"),
             "homepage": item.get("homepage"),
+            "owner_login": str((item.get("owner") or {}).get("login") or ""),
+            "owner_type": str((item.get("owner") or {}).get("type") or ""),
+            "archived": bool(item.get("archived")),
+            "is_fork": bool(item.get("fork")),
         },
     )
