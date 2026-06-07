@@ -2,7 +2,12 @@ from datetime import date
 
 from daily_tool_discovery.config import TrustConfig
 from daily_tool_discovery.models import Candidate
-from daily_tool_discovery.trust import assess_trust, annotate_trust, is_auto_generated_login
+from daily_tool_discovery.trust import (
+    assess_trust,
+    annotate_trust,
+    is_auto_generated_login,
+    publisher_is_suspicious,
+)
 
 TODAY = date(2026, 6, 7)
 CFG = TrustConfig()
@@ -77,3 +82,18 @@ def test_annotate_trust_writes_tier_and_flags():
     annotated = annotate_trust(c, assess_trust(c, TODAY, CFG))
     assert annotated.metadata["trust_tier"] == "reject"
     assert "auto-generated-username" in annotated.metadata["risk_flags"]
+
+
+def test_publisher_suspicious_brand_new_lonely_account():
+    user = {"created_at": "2026-06-01T00:00:00Z", "public_repos": 1, "followers": 0}
+    assert publisher_is_suspicious(user, TODAY, CFG) is True
+
+
+def test_publisher_not_suspicious_established_account():
+    user = {"created_at": "2015-01-01T00:00:00Z", "public_repos": 40, "followers": 200}
+    assert publisher_is_suspicious(user, TODAY, CFG) is False
+
+
+def test_publisher_not_suspicious_when_has_followers():
+    user = {"created_at": "2026-06-01T00:00:00Z", "public_repos": 1, "followers": 5}
+    assert publisher_is_suspicious(user, TODAY, CFG) is False

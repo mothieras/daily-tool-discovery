@@ -64,6 +64,15 @@ class GitHubClient:
         payload = self.transport.get_json(f"https://api.github.com/repos/{full_name}", headers)
         return candidate_from_github_payload(payload, discovered_at, kind, source=source)
 
+    def get_user(self, login: str) -> dict[str, Any]:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "daily-tool-discovery",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return self.transport.get_json(f"https://api.github.com/users/{login}", headers)
+
 
 def candidate_from_github_payload(
     item: dict[str, Any],

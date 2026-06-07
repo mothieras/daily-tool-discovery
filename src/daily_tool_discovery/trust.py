@@ -69,6 +69,18 @@ def assess_trust(candidate: Candidate, today: date, config: TrustConfig) -> Trus
     return TrustAssessment("review", tuple(flags))
 
 
+def publisher_is_suspicious(user: dict, today: date, config: TrustConfig) -> bool:
+    created_days = _days_since(user.get("created_at"), today)
+    public_repos = int(user.get("public_repos") or 0)
+    followers = int(user.get("followers") or 0)
+    return (
+        created_days is not None
+        and created_days <= config.new_repo_days
+        and public_repos <= 2
+        and followers == 0
+    )
+
+
 def annotate_trust(candidate: Candidate, assessment: TrustAssessment) -> Candidate:
     return candidate.with_metadata(
         trust_tier=assessment.tier,

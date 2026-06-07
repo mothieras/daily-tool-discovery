@@ -82,3 +82,21 @@ def test_payload_trust_metadata_defaults_when_missing():
     assert md["owner_type"] == ""
     assert md["archived"] is False
     assert md["is_fork"] is False
+
+
+class _FakeUserTransport:
+    def __init__(self, payload):
+        self.payload = payload
+        self.url = None
+
+    def get_json(self, url, headers):
+        self.url = url
+        return self.payload
+
+
+def test_get_user_calls_users_endpoint():
+    transport = _FakeUserTransport({"login": "alice", "followers": 9})
+    client = GitHubClient(transport=transport)
+    user = client.get_user("alice")
+    assert transport.url == "https://api.github.com/users/alice"
+    assert user["followers"] == 9
