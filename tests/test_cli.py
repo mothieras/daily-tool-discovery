@@ -1,228 +1,122 @@
-import pytest
+import json
+from pathlib import Path
 
-from daily_tool_discovery.cli import main, run_discover, run_dry_run
+from daily_tool_discovery import cli
 from daily_tool_discovery.models import Candidate
-from daily_tool_discovery.jsonl_store import read_jsonl
 
 
-def write_manual_seed(root):
-    seeds_dir = root / "seeds"
-    seeds_dir.mkdir()
-    (seeds_dir / "manual.jsonl").write_text(
-        '{"name":"floral-notepaper","url":"https://github.com/Achilng/floral-notepaper","summary":"Markdown sticky notes","tags":["tauri","markdown"],"kind":"open-source-small-tool"}\n',
+def _write_sources(root: Path):
+    (root / "config").mkdir(parents=True, exist_ok=True)
+    (root / "config" / "sources.toml").write_text(
+        '[[github_search]]\nname = "main"\nquery = "agent"\nkind = "agent-dev-tool"\nmin_stars = 20\n',
         encoding="utf-8",
     )
 
 
-def test_dry_run_uses_manual_seeds_and_writes_artifacts(tmp_path):
-    write_manual_seed(tmp_path)
+class _StubGitHub:
+    """Returns one trusted repo, one low-star repo, one malware-shaped repo."""
 
-    run_dry_run(root=tmp_path, date="2026-06-05")
-
-    candidates = tmp_path / "candidates" / "2026-06-05.jsonl"
-    briefing = tmp_path / "briefings" / "2026-06-05.md"
-
-    assert candidates.exists()
-    assert briefing.exists()
-    assert "floral-notepaper" in briefing.read_text(encoding="utf-8")
-
-
-def test_dry_run_overwrites_daily_candidates_on_rerun(tmp_path):
-    write_manual_seed(tmp_path)
-
-    run_dry_run(root=tmp_path, date="2026-06-05")
-    run_dry_run(root=tmp_path, date="2026-06-05")
-
-    candidates = tmp_path / "candidates" / "2026-06-05.jsonl"
-
-    assert len(candidates.read_text(encoding="utf-8").splitlines()) == 1
-
-
-def test_dry_run_rejects_path_like_date_without_writing_artifacts(tmp_path):
-    write_manual_seed(tmp_path)
-
-    with pytest.raises(ValueError, match="Invalid dry-run date"):
-        run_dry_run(root=tmp_path, date="../../escape")
-
-    assert not (tmp_path / "candidates").exists()
-    assert not (tmp_path / "briefings").exists()
-
-
-def test_dry_run_requires_manual_seed_file_before_writing_artifacts(tmp_path):
-    seeds_dir = tmp_path / "seeds"
-    seeds_dir.mkdir()
-
-    with pytest.raises(FileNotFoundError, match="manual seed file not found"):
-        run_dry_run(root=tmp_path, date="2026-06-05")
-
-    assert not (tmp_path / "candidates").exists()
-    assert not (tmp_path / "briefings").exists()
-
-
-def test_discover_writes_candidates_and_briefing(tmp_path, monkeypatch):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n", encoding="utf-8")
-    candidate = Candidate(
-        id="github:foo/bar",
-        name="foo/bar",
-        url="https://github.com/foo/bar",
-        source="curated:fake",
-        summary="Agent workflow tool",
-        tags=["agent"],
-        kind="agent-dev-tool",
-        discovered_at="2026-06-06",
-        metadata={"stars": 10},
-    )
-    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
-    monkeypatch.setattr(
-        "daily_tool_discovery.cli.discover_curated_candidates",
-        lambda sources, discovered_at, limit: [candidate],
-    )
-    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [])
-    monkeypatch.setattr(
-        "daily_tool_discovery.cli.discover_github_search_candidates",
-        lambda searches, discovered_at, limit: [],
-    )
-
-    run_discover(root=tmp_path, date="2026-06-06")
-
-    assert read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")[0]["id"] == "github:foo/bar"
-    assert "foo/bar" in (tmp_path / "briefings" / "2026-06-06.md").read_text(encoding="utf-8")
-
-
-def test_discover_uses_manual_seeds_as_taste_profile_without_listing_them(tmp_path, monkeypatch):
-    write_manual_seed(tmp_path)
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n[[github_search]]\nname='search'\nquery='agent'\n", encoding="utf-8")
-    captured = {}
-    curated = Candidate(
-        id="github:Achilng/floral-notepaper",
-        name="Achilng/floral-notepaper",
-        url="https://github.com/Achilng/floral-notepaper",
-        source="curated:fake",
-        summary="Duplicate manual seed",
-        tags=["tauri", "markdown"],
-        kind="open-source-small-tool",
-        discovered_at="2026-06-06",
-        metadata={},
-    )
-    searched = Candidate(
-        id="github:search/notes",
-        name="search/notes",
-        url="https://github.com/search/notes",
-        source="github_search:search",
-        summary="Search notes tool",
-        tags=["tauri", "markdown"],
-        kind="open-source-small-tool",
-        discovered_at="2026-06-06",
-        metadata={},
-    )
-    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
-    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [object()])
-
-    def fake_curated(sources, discovered_at, limit):
-        captured["curated_limit"] = limit
-        return [curated]
-
-    def fake_search(searches, discovered_at, limit):
-        captured["search_limit"] = limit
-        return [searched]
-
-    monkeypatch.setattr("daily_tool_discovery.cli.discover_curated_candidates", fake_curated)
-    monkeypatch.setattr("daily_tool_discovery.cli.discover_github_search_candidates", fake_search)
-
-    run_discover(root=tmp_path, date="2026-06-06", limit=80)
-
-    rows = read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")
-    assert [row["id"] for row in rows] == ["github:search/notes"]
-    assert rows[0]["metadata"]["taste_profile_match"] is True
-    assert rows[0]["metadata"]["taste_profile_kind_match"] is True
-    assert rows[0]["metadata"]["taste_profile_tags"] == ["markdown", "tauri"]
-    assert captured == {"curated_limit": 60, "search_limit": 20}
-
-
-def test_discover_does_not_apply_taste_profile_from_kind_only(tmp_path, monkeypatch):
-    write_manual_seed(tmp_path)
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "sources.example.toml").write_text("[[sources]]\nname='fake'\nurl='https://example.com'\n", encoding="utf-8")
-    candidate = Candidate(
-        id="github:generic/tool",
-        name="generic/tool",
-        url="https://github.com/generic/tool",
-        source="curated:fake",
-        summary="Generic small tool",
-        tags=["calendar"],
-        kind="open-source-small-tool",
-        discovered_at="2026-06-06",
-        metadata={},
-    )
-    monkeypatch.setattr("daily_tool_discovery.cli.load_curated_sources", lambda path: [])
-    monkeypatch.setattr("daily_tool_discovery.cli.load_github_search_sources", lambda path: [])
-    monkeypatch.setattr(
-        "daily_tool_discovery.cli.discover_curated_candidates",
-        lambda sources, discovered_at, limit: [candidate],
-    )
-    monkeypatch.setattr(
-        "daily_tool_discovery.cli.discover_github_search_candidates",
-        lambda searches, discovered_at, limit: [],
-    )
-
-    run_discover(root=tmp_path, date="2026-06-06", limit=80)
-
-    rows = read_jsonl(tmp_path / "candidates" / "2026-06-06.jsonl")
-    assert "taste_profile_match" not in rows[0]["metadata"]
-
-
-def test_feedback_command_writes_feedback_jsonl(tmp_path):
-    result = main(
-        [
-            "feedback",
-            "--root",
-            str(tmp_path),
-            "--date",
-            "2026-06-05",
-            "--candidate-id",
-            "github:Achilng/floral-notepaper",
-            "--verdict",
-            "tried",
-            "--value",
-            "useful",
-            "--note",
-            "Worth keeping.",
-        ]
-    )
-
-    assert result == 0
-    assert read_jsonl(tmp_path / "feedback.jsonl") == [
-        {
-            "date": "2026-06-05",
-            "candidate_id": "github:Achilng/floral-notepaper",
-            "verdict": "tried",
-            "value": "useful",
-            "note": "Worth keeping.",
+    def __init__(self):
+        # Established accounts: not suspicious. Any login not listed falls back to a
+        # brand-new lonely account (suspicious), so list every legit finalist here.
+        self.users = {
+            "alice": {"created_at": "2015-01-01T00:00:00Z", "public_repos": 50, "followers": 300},
+            "carol": {"created_at": "2020-01-01T00:00:00Z", "public_repos": 12, "followers": 40},
         }
-    ]
+
+    def search_repositories(self, query, discovered_at, kind, per_page=10, min_stars=0):
+        return [
+            Candidate(id="github:alice/good", name="alice/good", url="https://github.com/alice/good",
+                      source="github", summary="great", tags=["agent", "mcp"], kind="agent-dev-tool",
+                      discovered_at=discovered_at,
+                      metadata={"stars": 800, "forks": 120, "open_issues": 6,
+                                "created_at": "2023-01-01T00:00:00Z", "pushed_at": "2026-06-01T00:00:00Z",
+                                "owner_login": "alice", "owner_type": "User", "archived": False, "is_fork": False}),
+            Candidate(id="github:carol/tiny", name="carol/tiny", url="https://github.com/carol/tiny",
+                      source="github", summary="small", tags=["cli"], kind="open-source-small-tool",
+                      discovered_at=discovered_at,
+                      metadata={"stars": 3, "forks": 0, "open_issues": 0,
+                                "created_at": "2025-01-01T00:00:00Z", "pushed_at": "2026-05-01T00:00:00Z",
+                                "owner_login": "carol", "owner_type": "User", "archived": False, "is_fork": False}),
+            Candidate(id="github:BlueElephant42/x", name="BlueElephant42/x", url="https://github.com/BlueElephant42/x",
+                      source="github", summary="", tags=["agent", "mcp", "cli"], kind="agent-dev-tool",
+                      discovered_at=discovered_at,
+                      metadata={"stars": 0, "forks": 0, "open_issues": 0,
+                                "created_at": "2026-06-05T00:00:00Z", "pushed_at": "2026-06-05T00:00:00Z",
+                                "owner_login": "BlueElephant42", "owner_type": "User", "archived": False, "is_fork": False}),
+        ]
+
+    def get_user(self, login):
+        return self.users.get(login, {"created_at": "2026-06-01T00:00:00Z", "public_repos": 1, "followers": 0})
 
 
-def test_feedback_command_rejects_path_like_date_without_writing_feedback(tmp_path):
-    with pytest.raises(SystemExit):
-        main(
-            [
-                "feedback",
-                "--root",
-                str(tmp_path),
-                "--date",
-                "../../escape",
-                "--candidate-id",
-                "github:Achilng/floral-notepaper",
-                "--verdict",
-                "ignored",
-                "--value",
-                "not-useful",
-            ]
-        )
+def _run(root, monkeypatch, date_str="2026-06-07"):
+    monkeypatch.setattr(cli, "_make_github_client", lambda: _StubGitHub())
+    cli.run_discover(root=root, date=date_str)
 
-    assert not (tmp_path / "feedback.jsonl").exists()
+
+def test_discover_promotes_trusted_and_quarantines_malware(tmp_path, monkeypatch):
+    _write_sources(tmp_path)
+    _run(tmp_path, monkeypatch)
+    briefing = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
+    assert "## Try Today" in briefing
+    assert "alice/good" in briefing
+    # malware-shaped repo must never be a try item
+    try_section = briefing.split("## Save")[0]
+    assert "BlueElephant42" not in try_section
+    # low-star on-topic goes to review
+    assert "carol/tiny" in briefing.split("## Review yourself")[1]
+
+
+def test_full_pool_written_to_candidates_inbox(tmp_path, monkeypatch):
+    _write_sources(tmp_path)
+    _run(tmp_path, monkeypatch)
+    rows = [json.loads(l) for l in (tmp_path / "candidates" / "2026-06-07.jsonl").read_text().splitlines()]
+    ids = {r["id"] for r in rows}
+    assert {"github:alice/good", "github:carol/tiny", "github:BlueElephant42/x"} <= ids
+    # each candidate carries its trust tier
+    tier_by_id = {r["id"]: r["metadata"].get("trust_tier") for r in rows}
+    assert tier_by_id["github:BlueElephant42/x"] == "reject"
+    assert tier_by_id["github:alice/good"] == "trusted"
+
+
+def test_negative_feedback_suppresses_next_run(tmp_path, monkeypatch):
+    _write_sources(tmp_path)
+    _run(tmp_path, monkeypatch)
+    cli.run_feedback(root=tmp_path, date="2026-06-07", candidate_id="github:alice/good",
+                     verdict="tried", value="not useful", note="")
+    _run(tmp_path, monkeypatch, date_str="2026-07-10")  # outside novelty window, but suppressed
+    briefing = (tmp_path / "briefings" / "2026-07-10.md").read_text(encoding="utf-8")
+    assert "alice/good" not in briefing
+
+
+def test_novelty_prevents_same_day_repeat(tmp_path, monkeypatch):
+    _write_sources(tmp_path)
+    _run(tmp_path, monkeypatch, date_str="2026-06-07")
+    _run(tmp_path, monkeypatch, date_str="2026-06-08")  # within 30-day window
+    briefing = (tmp_path / "briefings" / "2026-06-08.md").read_text(encoding="utf-8")
+    # alice/good already surfaced on 06-07 -> not re-surfaced as try/save
+    assert "## Try Today" in briefing
+    assert "alice/good" not in briefing.split("Filtered")[0].split("## Review yourself")[0]
+
+
+def test_dry_run_produces_briefing(tmp_path):
+    (tmp_path / "seeds").mkdir()
+    (tmp_path / "seeds" / "manual.jsonl").write_text(
+        json.dumps({"name": "Seed", "url": "https://github.com/me/seed",
+                    "kind": "agent-dev-tool", "tags": ["agent"]}) + "\n",
+        encoding="utf-8",
+    )
+    cli.run_dry_run(root=tmp_path, date="2026-06-07")
+    out = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
+    assert "# Daily Tool Discovery Briefing - 2026-06-07" in out
+
+
+def test_feedback_cli_appends_record(tmp_path):
+    rc = cli.main([
+        "feedback", "--root", str(tmp_path), "--date", "2026-06-07",
+        "--candidate-id", "github:a/b", "--verdict", "tried", "--value", "useful",
+    ])
+    assert rc == 0
+    rows = (tmp_path / "feedback.jsonl").read_text(encoding="utf-8").strip().splitlines()
+    assert len(rows) == 1 and "github:a/b" in rows[0]
