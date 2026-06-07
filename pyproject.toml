@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "daily-tool-discovery"
 version = "0.1.0"
-description = "Daily tool discovery briefing workflow"
+description = "Trust-first daily tool-discovery briefing with a configurable taste profile"
 requires-python = ">=3.11"
 dependencies = []
 
