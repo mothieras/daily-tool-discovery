@@ -100,3 +100,27 @@ def test_get_user_calls_users_endpoint():
     user = client.get_user("alice")
     assert transport.url == "https://api.github.com/users/alice"
     assert user["followers"] == 9
+
+
+class _FakeSearchTransport:
+    def __init__(self):
+        self.url = None
+
+    def get_json(self, url, headers):
+        self.url = url
+        return {"items": []}
+
+
+def test_search_appends_stars_floor():
+    transport = _FakeSearchTransport()
+    client = GitHubClient(transport=transport)
+    client.search_repositories("agent mcp cli", "2026-06-07", "agent-dev-tool", min_stars=20)
+    assert "stars%3A%3E%3D20" in transport.url  # urlencoded "stars:>=20"
+
+
+def test_search_does_not_double_append_when_query_has_stars():
+    transport = _FakeSearchTransport()
+    client = GitHubClient(transport=transport)
+    client.search_repositories("agent stars:>=100", "2026-06-07", "agent-dev-tool", min_stars=20)
+    assert "stars%3A%3E%3D100" in transport.url
+    assert "stars%3A%3E%3D20" not in transport.url

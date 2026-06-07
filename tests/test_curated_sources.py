@@ -134,3 +134,29 @@ def test_discover_curated_candidates_caps_each_source():
         "curated:second",
         "curated:second",
     ]
+
+
+def test_github_search_source_parses_min_stars(tmp_path):
+    config = tmp_path / "sources.toml"
+    config.write_text(
+        '[[github_search]]\n'
+        'name = "x"\n'
+        'query = "agent"\n'
+        'kind = "agent-dev-tool"\n'
+        'min_stars = 50\n',
+        encoding="utf-8",
+    )
+    from daily_tool_discovery.curated_sources import load_github_search_sources
+    sources = load_github_search_sources(config)
+    assert sources[0].min_stars == 50
+
+
+def test_github_search_source_min_stars_defaults_to_20(tmp_path):
+    config = tmp_path / "sources.toml"
+    config.write_text(
+        '[[github_search]]\nname = "x"\nquery = "agent"\nkind = "agent-dev-tool"\n',
+        encoding="utf-8",
+    )
+    from daily_tool_discovery.curated_sources import load_github_search_sources
+    sources = load_github_search_sources(config)
+    assert sources[0].min_stars == 20

@@ -45,6 +45,7 @@ class GitHubSearchSource:
     query: str
     kind: CandidateKind
     per_page: int = 10
+    min_stars: int = 20
 
 
 def load_curated_sources(path: Path) -> list[CuratedSource]:
@@ -95,6 +96,7 @@ def load_github_search_sources(path: Path) -> list[GitHubSearchSource]:
                     query=str(row["query"]),
                     kind=_parse_kind(row.get("kind", "other"), path, f"github_search #{index}"),
                     per_page=int(row.get("per_page", 10)),
+                    min_stars=int(row.get("min_stars", 20)),
                 )
             )
         except KeyError as exc:
@@ -164,6 +166,7 @@ def discover_github_search_candidates(
                 discovered_at=discovered_at,
                 kind=search.kind,
                 per_page=search.per_page,
+                min_stars=search.min_stars,
             )
         except Exception:
             continue
