@@ -39,6 +39,14 @@ Trust signals are first-class — judge by them before relevance:
 
 ## How to operate (config only — never edit code)
 
+Run the bundled entry point — it is self-contained (no install): `python3 <this skill
+dir>/run.py discover`. State auto-lives in `~/.daily-tool-discovery` (override with the
+`DAILY_TOOL_DISCOVERY_HOME` env var); the first run copies the example profile and seed
+there. After it finishes, read the day's briefing at
+`~/.daily-tool-discovery/briefings/<today>.md`. The `save`, `deny`, and `feedback`
+commands run the same way, e.g. `python3 <skill dir>/run.py save --candidate-id
+github:owner/repo`.
+
 Everything lives in the active `profile.toml` (falls back to `config/profile.example.toml`).
 
 - **Add/remove a source:** edit a category's `[[category.source]]` (awesome-list README
@@ -47,9 +55,9 @@ Everything lives in the active `profile.toml` (falls back to `config/profile.exa
   (vetted 2026-06-07).
 - **Retarget the domain / change the bias:** edit categories' `signal_tags` and `weight`,
   add/remove categories, and change `topic:`/`created:`/`pushed:` in searches.
-- **Deny a project:** `daily-tool-discovery deny --pattern owner/repo` (glob ok) — never
-  surfaced again.
-- **Save a project:** `daily-tool-discovery save --candidate-id github:owner/repo` —
+- **Deny a project:** `python3 <skill dir>/run.py deny --pattern owner/repo` (glob ok) —
+  never surfaced again.
+- **Save a project:** `python3 <skill dir>/run.py save --candidate-id github:owner/repo` —
   bookmarks it, stops re-recommending it, and gently biases future picks toward similar
   tags (bounded; see `[recommend]`).
 - **Tune trust/recommender:** `[trust]` (stars floor, novelty) and `[recommend]` (taste
