@@ -4,7 +4,14 @@ You are reviewing candidate tools for the Daily Tool Discovery briefing.
 
 Review only the provided candidate artifacts. Do not autonomously discover, fetch, install, set up, or inspect anything outside the supplied candidate data.
 
-Prioritize:
+Judge by trust signals first: GitHub stars (>= 20 to be a direct try), recent
+maintenance, publisher credibility, and issue/PR activity. A project with fewer than 20
+stars goes to "review yourself", never "try". Relevance (agent/dev tooling, local-first
+small tools) decides which trusted candidate to pick; it never overrides the trust floor.
+Treat auto-generated usernames with 0 stars/forks and hollow READMEs as spam — ignore
+them.
+
+Prioritize within trusted candidates:
 
 - Agent/dev tooling for Codex, Claude Code, Hermes, MCP, skills, AI coding, terminal workflow, and developer automation.
 - Open-source small tools for Tauri, Electron, Rust, TypeScript, macOS, Markdown, Obsidian, CLI, and local-first workflows.

@@ -24,19 +24,37 @@ Expected artifacts:
 
 If a Hermes cron job injects script output, treat that output as the generated briefing for the day.
 
-## Review Policy
+## What makes a good project
 
-Optimize for the user's actual goal: finding useful software, skills, MCP servers, agents, and small open-source tools that improve information input, development workflow, or daily automation.
+Trust signals are first-class. Judge candidates by:
 
-Prioritize:
+1. Community: GitHub stars are a floor, not a tiebreaker. A project with fewer than 20
+   stars is never a direct "try" — it must be reviewed and audited by the user first.
+2. Maintenance: recent commits/pushes and a non-archived repo.
+3. Publisher credibility: a real account with history and followers; an organization is
+   stronger than a brand-new lone user. Auto-generated usernames (random word + random
+   word + digits) with 0 stars/forks and a hollow README are spam/malware — never
+   recommend them.
+4. Activity: open issues/PRs indicate real usage and maintenance.
+5. Relevance: agent/dev tooling (MCP, Codex, Claude Code, Hermes, CLI/dev workflow,
+   automation) and local-first small tools. Relevance decides which trusted candidate to
+   pick; it never overrides the trust floor.
 
-1. Relevance to the main line: Agent tooling, MCP, Codex, Claude Code, Hermes, CLI/dev workflow, automation, local-first utilities.
-2. Source trust: friend/manual seed taste profile > curated list > direct GitHub search. Manual seeds express preferences; do not repeatedly recommend the seed items themselves unless the user asks.
-3. Practical trial value: can the user evaluate it in about 15 minutes without major setup risk?
-4. Maintenance confidence: stars, recent activity, README clarity, and developer credibility reduce risk but do not override relevance.
-5. Novelty: a small but sharply relevant project can be worth trying even with low stars.
+Never recommend a project for direct use just because it matches keywords. Keyword/topic
+matches are cheap to fake; community and maintenance signals are not. Manual seeds express
+the user's taste; do not repeatedly recommend the seed items themselves unless asked.
 
-Do not optimize for GitHub stars alone. The goal is not to find the most famous project; it is to find the most useful thing to try today.
+## How to use this skill
+
+The CLI owns discovery, metadata, dedup, trust tiering, and first-pass scoring. Read its
+artifacts; do not browse for new candidates.
+
+- `Try Today` items are already trust-vetted (>= 20 stars, maintained, credible
+  publisher) — safe to propose for a 15-minute trial.
+- `Review yourself` items are on-topic but low-trust — surface them for the user's manual
+  audit; never endorse them as `try` and never suggest running them blindly.
+- The `Filtered N suspicious candidates` line reports rejected spam/malware; the full
+  records remain in `candidates/YYYY-MM-DD.jsonl` for tracing.
 
 ## Boundaries
 
@@ -53,15 +71,15 @@ Do not:
 
 Return at most three items:
 
-- `try`: at most one item that is worth a 15-minute trial today.
-- `save`: useful but not urgent.
-- `ignore`: only when a generated candidate is clearly off-target or risky.
+- `try`: at most one trust-vetted item worth a 15-minute trial today.
+- `save`: trust-vetted but not urgent.
 
-Prefer no `try` item over a weak forced recommendation.
+Surface `Review yourself` items separately as "audit before running" — do not classify
+them as `try`. Prefer no `try` item over a weak forced recommendation.
 
 For each item, include:
 
 - candidate name and URL
-- verdict: `try`, `save`, or `ignore`
-- one concrete reason grounded in the provided artifact
-- optional feedback command the user can run later
+- verdict
+- one concrete reason grounded in the provided artifact (cite a trust signal)
+- optional `daily-tool-discovery feedback` command the user can run later

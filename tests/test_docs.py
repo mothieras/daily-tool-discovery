@@ -55,3 +55,15 @@ def test_cli_help_documents_dry_run_and_feedback_commands():
     assert "dry-run" in help_text
     assert "discover" in help_text
     assert "feedback" in help_text
+
+
+def test_skill_states_trust_floor():
+    text = Path("hermes-skills/daily-tool-discovery/SKILL.md").read_text(encoding="utf-8")
+    assert "20" in text  # the stars floor
+    assert "Review yourself" in text
+    assert "do not run blindly" in text.lower() or "audit" in text.lower()
+
+
+def test_readme_documents_review_bucket():
+    text = Path("README.md").read_text(encoding="utf-8")
+    assert "Review yourself" in text

@@ -99,6 +99,19 @@ Artifacts:
 - `candidates/YYYY-MM-DD.jsonl`
 - `briefings/YYYY-MM-DD.md`
 
+## Briefing buckets
+
+- **Try Today**: trust-vetted picks (>= 20 stars, maintained, credible publisher).
+- **Save**: trust-vetted but not urgent.
+- **Review yourself**: on-topic but low community signal — audit before running; never run blindly.
+- A footer line reports how many suspicious candidates were filtered out. Rejected
+  records still appear in `candidates/YYYY-MM-DD.jsonl` for inspection.
+
+Trust thresholds are configurable via `--min-stars` / `DAILY_TOOL_DISCOVERY_MIN_STARS`
+(default 20) and novelty cooldown via `--novelty-days` /
+`DAILY_TOOL_DISCOVERY_NOVELTY_DAYS` (default 30). Already-surfaced items cool down for the
+novelty window so the daily briefing rotates instead of repeating.
+
 ## Manual Seeds
 
 Manual seeds are useful for friend recommendations or projects you already know about. In `discover`, they act as taste references rather than daily recommendations. Use `dry-run` only when you want to inspect the manual seeds themselves:
