@@ -125,7 +125,7 @@ cold_start_min_saves = 5         # 收藏够多之前不学习
 explore_slots = 1                # 强制的 off-profile 曝光
 
 [lists]
-deny = ["someowner/*"]           # 永不出现(也见 denylist.txt)
+deny = ["someowner/*"]           # 静态拉黑;加载时与 denylist.txt 取并集
 ```
 
 相关度是**纯标签**的:候选的 topics/名字/简介会与每个类目的 `signal_tags` 匹配、按 `weight`
@@ -138,7 +138,8 @@ deny = ["someowner/*"]           # 永不出现(也见 denylist.txt)
 # 收藏一个项目:加书签、不再重复推荐、轻微偏向同类。
 daily-tool-discovery save --root . --candidate-id github:owner/repo
 
-# 拉黑一个项目或 owner(支持 glob):永不再出现。追加到 denylist.txt。
+# 拉黑一个项目或 owner(支持 glob):永不再出现。追加到 denylist.txt,
+# 加载时与 profile.toml 的 [lists] deny 取并集 —— 改哪一处都生效。
 daily-tool-discovery deny --root . --pattern owner/repo
 
 # 轻量反馈(tried / saved / ignored)。追加到 feedback.jsonl。

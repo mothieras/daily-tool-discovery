@@ -137,7 +137,7 @@ cold_start_min_saves = 5         # no learning until enough saves
 explore_slots = 1                # forced off-profile exposure
 
 [lists]
-deny = ["someowner/*"]           # never surface (also see denylist.txt)
+deny = ["someowner/*"]           # static denies; unioned with denylist.txt at load
 ```
 
 Relevance is **pure tags**: a candidate's topics/name/summary are matched against each
@@ -151,7 +151,8 @@ profile and edit its categories.
 # Save a project: bookmark it, stop re-recommending it, gently bias future picks.
 daily-tool-discovery save --root . --candidate-id github:owner/repo
 
-# Deny a project or owner (glob): never surface it again. Appends to denylist.txt.
+# Deny a project or owner (glob): never surface it again. Appends to denylist.txt,
+# which is unioned at load with profile.toml's [lists] deny — either source works.
 daily-tool-discovery deny --root . --pattern owner/repo
 
 # Lightweight feedback (tried / saved / ignored). Appended to feedback.jsonl.

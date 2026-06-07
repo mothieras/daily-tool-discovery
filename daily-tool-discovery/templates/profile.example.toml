@@ -91,4 +91,7 @@ taste_points_per_tag = 6
 explore_slots = 1
 
 [lists]
+# Static, version-controlled denies. Unioned at load time with the dynamic
+# `denylist.txt` that the `deny` command appends to — editing either file takes
+# effect on the next run; you never need to keep the two in sync.
 deny = []
