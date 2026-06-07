@@ -83,3 +83,17 @@ def test_candidate_is_isolated_from_external_mutation():
 
     assert candidate.to_dict()["tags"] == ["tauri"]
     assert candidate.to_dict()["metadata"] == {"stars": 3500}
+
+
+def test_with_metadata_merges_and_returns_new_candidate():
+    base = Candidate(
+        id="github:a/b", name="a/b", url="https://github.com/a/b",
+        source="curated:x", summary="s", tags=["cli"], kind="other",
+        discovered_at="2026-06-07", metadata={"stars": 5},
+    )
+    updated = base.with_metadata(trust_tier="review", stars=5)
+    assert updated is not base
+    assert base.metadata.get("trust_tier") is None  # original untouched
+    assert updated.metadata["trust_tier"] == "review"
+    assert updated.metadata["stars"] == 5
+    assert updated.tags == ("cli",)

@@ -48,6 +48,20 @@ class Candidate:
             "metadata": dict(self.metadata),
         }
 
+    def with_metadata(self, **extra: Any) -> "Candidate":
+        merged = {**dict(self.metadata), **extra}
+        return Candidate(
+            id=self.id,
+            name=self.name,
+            url=self.url,
+            source=self.source,
+            summary=self.summary,
+            tags=self.tags,
+            kind=self.kind,
+            discovered_at=self.discovered_at,
+            metadata=merged,
+        )
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Candidate":
         return cls(
