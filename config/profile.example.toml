@@ -38,7 +38,7 @@ signal_tags = ["agent", "ai-coding", "mcp", "codex", "claude", "claude-code", "h
 [[category]]
 name = "cli-mac-tools"
 weight = 1
-signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-first"]
+signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-first", "terminal", "command-line", "rust", "golang", "productivity", "developer-tools", "neovim", "ratatui", "bubbletea", "note-taking"]
 
   [[category.source]]
   name = "awesome-tauri"
@@ -58,6 +58,21 @@ signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-fi
   query = "topic:tauri created:>2026-01-01"
   per_page = 10
   min_stars = 30
+  [[category.search]]
+  name = "maintained-cli-tools"
+  query = "topic:cli pushed:>2026-03-01"
+  per_page = 10
+  min_stars = 100
+  [[category.search]]
+  name = "fresh-terminal-tools"
+  query = "topic:terminal created:>2026-01-01"
+  per_page = 10
+  min_stars = 100
+  [[category.search]]
+  name = "maintained-mac-tools"
+  query = "topic:macos pushed:>2026-03-01"
+  per_page = 10
+  min_stars = 100
 
 [trust]
 min_stars = 20
