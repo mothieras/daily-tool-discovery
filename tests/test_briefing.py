@@ -49,3 +49,11 @@ def test_mismatched_pair_raises():
     bad = CandidateDecision(candidate_id="github:x/y", action="save", score=1, reason="r")
     with pytest.raises(ValueError):
         render_briefing("2026-06-07", [(candidate, bad)])
+
+
+def test_renders_explore_section_with_note():
+    selected = [_pair("github:x/explore", "explore", stars=400, owner_login="dave")]
+    out = render_briefing("2026-06-07", selected)
+    assert "## 🎲 Explore" in out
+    assert "included on purpose" in out.lower() or "don't dismiss" in out.lower()
+    assert "github:x/explore" in out or "x/explore" in out

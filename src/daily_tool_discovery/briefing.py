@@ -12,12 +12,14 @@ def render_briefing(
     try_items = [(c, d) for c, d in selected if d.action == "try"]
     save_items = [(c, d) for c, d in selected if d.action == "save"]
     review_items = [(c, d) for c, d in selected if d.action == "review"]
+    explore_items = [(c, d) for c, d in selected if d.action == "explore"]
     ignore_items = [(c, d) for c, d in selected if d.action == "ignore"]
 
     lines = [f"# Daily Tool Discovery Briefing - {date}", ""]
     lines.extend(_render_section("Try Today", try_items, "No try-worthy item today.", include_trial=True))
     lines.extend(_render_section("Save", save_items, "No saved items today.", include_trial=False))
     lines.extend(_render_section("Review yourself", review_items, "No items need manual review today.", include_trial=False))
+    lines.extend(_render_section("🎲 Explore", explore_items, "No exploration pick today.", include_trial=False))
     lines.extend(_render_section("Ignore", ignore_items, "No explicit ignores today.", include_trial=False))
     lines.append(f"Filtered {filtered_count} suspicious candidates.")
     lines.append("")
@@ -29,6 +31,10 @@ def _render_section(title, items, empty, include_trial):
     if not items:
         lines.extend([empty, ""])
         return lines
+
+    if title == "🎲 Explore":
+        lines.append("_Outside your usual interests — included on purpose. Don't dismiss it just because it doesn't match your profile._")
+        lines.append("")
 
     for candidate, decision in items:
         caveat = _inline_text(decision.caveat)
