@@ -39,13 +39,27 @@ Trust signals are first-class — judge by them before relevance:
 
 ## How to operate (config only — never edit code)
 
-Run the bundled entry point — it is self-contained (no install): `python3 <this skill
-dir>/run.py discover`. State auto-lives in `~/.daily-tool-discovery` (override with the
-`DAILY_TOOL_DISCOVERY_HOME` env var); the first run copies the example profile and seed
-there. After it finishes, read the day's briefing at
-`~/.daily-tool-discovery/briefings/<today>.md`. The `save`, `deny`, and `feedback`
-commands run the same way, e.g. `python3 <skill dir>/run.py save --candidate-id
-github:owner/repo`.
+**`GITHUB_TOKEN` is required — set it first.** It must be in the environment (or in
+`~/.hermes/.env`, which the cron wrapper sources) before discovery runs. Without it GitHub
+returns 403 and every curated source comes back empty — the whole run is wasted. Verify it
+before anything else (see Troubleshooting below).
+
+Run the bundled entry point — it is self-contained (no install needed):
+
+```
+python3 ~/.hermes/skills/software-development/daily-tool-discovery/run.py discover
+```
+
+State auto-lives in `~/.daily-tool-discovery` (override with the `DAILY_TOOL_DISCOVERY_HOME`
+env var); the first run copies the example profile and seed there. When it finishes, read
+the day's briefing at `~/.daily-tool-discovery/briefings/<today>.md`. The `save`, `deny`,
+and `feedback` commands run via the same `run.py`, e.g.:
+
+```
+python3 ~/.hermes/skills/software-development/daily-tool-discovery/run.py save --candidate-id github:owner/repo
+```
+
+(That absolute path is the default install location; if `HERMES_HOME` is customized, adjust accordingly.)
 
 Everything lives in the active `profile.toml` (falls back to `config/profile.example.toml`).
 
@@ -55,13 +69,26 @@ Everything lives in the active `profile.toml` (falls back to `config/profile.exa
   (vetted 2026-06-07).
 - **Retarget the domain / change the bias:** edit categories' `signal_tags` and `weight`,
   add/remove categories, and change `topic:`/`created:`/`pushed:` in searches.
-- **Deny a project:** `python3 <skill dir>/run.py deny --pattern owner/repo` (glob ok) —
-  never surfaced again.
-- **Save a project:** `python3 <skill dir>/run.py save --candidate-id github:owner/repo` —
-  bookmarks it, stops re-recommending it, and gently biases future picks toward similar
-  tags (bounded; see `[recommend]`).
+- **Deny a project:** `run.py deny --pattern owner/repo` (glob ok) — never surfaced again.
+- **Save a project:** `run.py save --candidate-id github:owner/repo` — bookmarks it, stops
+  re-recommending it, and gently biases future picks toward similar tags (bounded; see
+  `[recommend]`). (`run.py` = the absolute path shown above.)
 - **Tune trust/recommender:** `[trust]` (stars floor, novelty) and `[recommend]` (taste
   caps, exploration) blocks.
+
+## Troubleshooting
+
+Most failures are the token. Run this two-line check before anything else:
+
+```
+grep GITHUB_TOKEN ~/.hermes/.env                                       # configured for the cron wrapper?
+python3 -c "import os; print(len(os.environ.get('GITHUB_TOKEN','')))"  # set in THIS env? (0 = not set)
+```
+
+- All curated sources empty / `metadata_error_status: 403` → `GITHUB_TOKEN` is not set in
+  the env where `run.py` runs. Export it, or add `GITHUB_TOKEN=...` to `~/.hermes/.env`.
+- `401`, or candidate quality suddenly collapses (most candidates invalid) → the token
+  expired or is invalid. Replace it.
 
 ## How to consume the briefing
 
