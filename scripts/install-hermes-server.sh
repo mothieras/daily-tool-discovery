@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+SKILL_DIR="$HERMES_HOME/skills/software-development/daily-tool-discovery"
+DATA_ROOT="${DAILY_TOOL_DISCOVERY_HOME:-$HOME/.daily-tool-discovery}"
 LIMIT="${LIMIT:-80}"
 
 while [[ $# -gt 0 ]]; do
@@ -19,48 +20,42 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-cd "$ROOT"
-"$PYTHON_BIN" -m venv .venv
-. "$ROOT/.venv/bin/activate"
-python -m pip install -U pip
-python -m pip install -e .
-
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   echo "Warning: GITHUB_TOKEN is not set. GitHub metadata may hit low unauthenticated rate limits." >&2
 fi
 
-mkdir -p "$ROOT/seeds"
-if [[ ! -f "$ROOT/seeds/manual.jsonl" && -f "$ROOT/seeds/manual.example.jsonl" ]]; then
-  cp "$ROOT/seeds/manual.example.jsonl" "$ROOT/seeds/manual.jsonl"
-fi
+# Assemble a self-contained skill bundle (stdlib-only; no venv/pip).
+rm -rf "$SKILL_DIR"
+mkdir -p "$SKILL_DIR"
+cp "$ROOT/hermes-skills/daily-tool-discovery/SKILL.md" "$SKILL_DIR/SKILL.md"
+cp "$ROOT/run.py" "$SKILL_DIR/run.py"
+cp -R "$ROOT/src/daily_tool_discovery" "$SKILL_DIR/daily_tool_discovery"
+cp -R "$ROOT/config" "$SKILL_DIR/config"
+cp -R "$ROOT/seeds" "$SKILL_DIR/seeds"
 
-if [[ ! -f "$ROOT/config/profile.toml" && -f "$ROOT/config/profile.example.toml" ]]; then
-  cp "$ROOT/config/profile.example.toml" "$ROOT/config/profile.toml"
-fi
+# Create the data root and seed it by running the bundle once (dry-run needs no token;
+# it also triggers ensure_data_root to copy the example profile + seed into the data root).
+mkdir -p "$DATA_ROOT"
+DAILY_TOOL_DISCOVERY_HOME="$DATA_ROOT" python3 "$SKILL_DIR/run.py" dry-run >/tmp/daily-tool-discovery-smoke.md 2>&1 || true
 
+# Thin cron wrapper.
 mkdir -p "$HERMES_HOME/scripts"
 cat > "$HERMES_HOME/scripts/daily-tool-discovery.sh" <<SH
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$ROOT"
+DATA_ROOT="$DATA_ROOT"
+SKILL_DIR="$SKILL_DIR"
 TODAY="\$(date +%F)"
 
-cd "\$ROOT"
 [ -f "\$HOME/.hermes/.env" ] && set -a && . "\$HOME/.hermes/.env" && set +a
-. "\$ROOT/.venv/bin/activate"
-daily-tool-discovery discover --root "\$ROOT" --date "\$TODAY" --limit "$LIMIT" >/dev/null
-cat "\$ROOT/briefings/\$TODAY.md"
+DAILY_TOOL_DISCOVERY_HOME="\$DATA_ROOT" python3 "\$SKILL_DIR/run.py" discover --limit $LIMIT >/dev/null
+cat "\$DATA_ROOT/briefings/\$TODAY.md"
 SH
 chmod +x "$HERMES_HOME/scripts/daily-tool-discovery.sh"
 
-mkdir -p "$HERMES_HOME/skills/software-development"
-rm -rf "$HERMES_HOME/skills/software-development/daily-tool-discovery"
-cp -R "$ROOT/hermes-skills/daily-tool-discovery" "$HERMES_HOME/skills/software-development/daily-tool-discovery"
-
-"$HERMES_HOME/scripts/daily-tool-discovery.sh" >/tmp/daily-tool-discovery-smoke.md
-
-echo "Installed Daily Tool Discovery at $ROOT"
+echo "Installed Daily Tool Discovery skill bundle at $SKILL_DIR"
+echo "Data root: $DATA_ROOT"
 echo "Smoke output: /tmp/daily-tool-discovery-smoke.md"
 echo "Hermes script: $HERMES_HOME/scripts/daily-tool-discovery.sh"
-echo "Hermes skill: $HERMES_HOME/skills/software-development/daily-tool-discovery/SKILL.md"
+echo "Hermes skill: $SKILL_DIR/SKILL.md"
