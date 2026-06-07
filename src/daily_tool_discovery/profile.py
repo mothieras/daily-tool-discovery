@@ -99,3 +99,64 @@ def _build_recommend(tbl: dict) -> RecommendConfig:
         taste_points_per_tag=int(tbl.get("taste_points_per_tag", defaults.taste_points_per_tag)),
         explore_slots=int(tbl.get("explore_slots", defaults.explore_slots)),
     )
+
+
+import re
+
+from daily_tool_discovery.models import Candidate
+
+# Split words on anything that is not an alphanumeric, '+', '#', or '-'. This keeps
+# hyphenated compounds (e.g. "mcp-server") as a token AND, below, we also break them
+# into their parts ("mcp", "server") so both whole-tag and word-level matches work.
+_COMPOUND_RE = re.compile(r"[^a-z0-9+#-]+")
+
+
+def relevance_signals(candidate: Candidate) -> set[str]:
+    tokens = {str(t).lower() for t in candidate.tags}
+    for text in (candidate.name, candidate.summary):
+        for compound in _COMPOUND_RE.split(str(text).lower()):
+            if not compound:
+                continue
+            tokens.add(compound)
+            tokens.update(part for part in compound.split("-") if part)
+    return tokens
+
+
+def annotate_relevance(candidate: Candidate, profile: Profile) -> Candidate:
+    signals = relevance_signals(candidate)
+    rec = profile.recommend
+    matched_points = 0
+    matched_categories: list[str] = []
+    for cat in profile.categories:
+        matched = signals & {t.lower() for t in cat.signal_tags}
+        if matched:
+            matched_points += cat.weight * min(len(matched), rec.relevance_tags_per_category_cap) * rec.relevance_tag_points
+            matched_categories.append(cat.name)
+    if matched_categories:
+        points = min(matched_points, rec.relevance_max_points)
+    else:
+        # provenance floor: source category gives some relevance, but NOT a taste match
+        prov = next((c for c in profile.categories
+                     if c.name == candidate.metadata.get("category")), None)
+        points = min(prov.weight * rec.relevance_tag_points, rec.relevance_max_points) if prov else 0
+    return candidate.with_metadata(
+        relevance_points=points,
+        matched_categories=matched_categories,
+        taste_matched=bool(matched_categories),   # real tag match only -> Explore stays non-empty
+    )
+
+
+def learned_taste_tags(saved_candidates: list[Candidate], recommend: RecommendConfig) -> set[str]:
+    if len(saved_candidates) < recommend.cold_start_min_saves:
+        return set()
+    return {str(t).lower() for c in saved_candidates for t in c.tags}
+
+
+def annotate_taste(candidate: Candidate, learned_tags: set[str], recommend: RecommendConfig) -> Candidate:
+    if not learned_tags:
+        return candidate
+    hits = relevance_signals(candidate) & learned_tags
+    if not hits:
+        return candidate
+    points = min(len(hits) * recommend.taste_points_per_tag, recommend.taste_max_points)
+    return candidate.with_metadata(taste_points=points)
