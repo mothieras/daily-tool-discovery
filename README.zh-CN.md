@@ -181,9 +181,10 @@ cd ~/apps/daily-tool-discovery
 bash scripts/install-hermes-server.sh
 ```
 
-这会安装包、把 `config/profile.example.toml` 拷成 `config/profile.toml`、写入
-`~/.hermes/scripts/daily-tool-discovery.sh`、安装 skill,并跑一次冒烟发现。它不会创建 cron。
-常用检查:
+这会把自包含 skill bundle(包代码 + `SKILL.md` + 示例 profile)组装进 `~/.hermes/skills/`、
+在 `~/.daily-tool-discovery` 建好数据根并放一份起始 `profile.toml`、写入
+`~/.hermes/scripts/daily-tool-discovery.sh`,并跑一次冒烟发现——无需 venv/pip(纯标准库)。
+它不会创建 cron。常用检查:
 
 ```bash
 ~/.hermes/scripts/daily-tool-discovery.sh

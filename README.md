@@ -197,9 +197,11 @@ cd ~/apps/daily-tool-discovery
 bash scripts/install-hermes-server.sh
 ```
 
-This installs the package, copies `config/profile.example.toml` to `config/profile.toml`,
-writes `~/.hermes/scripts/daily-tool-discovery.sh`, installs the skill, and runs one smoke
-discovery. It does not create cron jobs. Useful checks:
+This assembles a self-contained skill bundle (the package code + `SKILL.md` + example
+profile) into `~/.hermes/skills/`, creates the data root `~/.daily-tool-discovery` with a
+starter `profile.toml`, writes `~/.hermes/scripts/daily-tool-discovery.sh`, and runs one
+smoke discovery — no venv or pip needed (stdlib only). It does not create cron jobs.
+Useful checks:
 
 ```bash
 ~/.hermes/scripts/daily-tool-discovery.sh
