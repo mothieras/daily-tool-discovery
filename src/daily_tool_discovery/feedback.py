@@ -56,12 +56,16 @@ class FeedbackSignals:
     suppressed_ids: frozenset[str]
     taste_tags: frozenset[str]
     taste_kinds: frozenset[str]
+    saved_ids: frozenset[str]
+    recent_saved: tuple[Candidate, ...]
 
 
 def load_feedback_signals(feedback_path: Path, candidate_index: dict[str, Candidate]) -> FeedbackSignals:
     suppressed: set[str] = set()
     tags: set[str] = set()
     kinds: set[str] = set()
+    saved_ids: set[str] = set()
+    recent_saved: list[Candidate] = []
     for row in read_jsonl(feedback_path):
         candidate_id = str(row.get("candidate_id", ""))
         if not candidate_id:
@@ -70,8 +74,13 @@ def load_feedback_signals(feedback_path: Path, candidate_index: dict[str, Candid
         if polarity == "negative":
             suppressed.add(candidate_id)
         elif polarity == "positive":
+            saved_ids.add(candidate_id)
             liked = candidate_index.get(candidate_id)
             if liked is not None:
                 tags.update(liked.tags)
                 kinds.add(liked.kind)
-    return FeedbackSignals(frozenset(suppressed), frozenset(tags), frozenset(kinds))
+                recent_saved.append(liked)
+    return FeedbackSignals(
+        frozenset(suppressed), frozenset(tags), frozenset(kinds),
+        frozenset(saved_ids), tuple(recent_saved),
+    )

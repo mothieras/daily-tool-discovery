@@ -88,3 +88,23 @@ def test_load_feedback_signals_missing_file(tmp_path):
     signals = load_feedback_signals(tmp_path / "none.jsonl", {})
     assert signals.suppressed_ids == frozenset()
     assert signals.taste_tags == frozenset()
+
+
+def test_load_feedback_signals_returns_saved_and_recent(tmp_path):
+    from daily_tool_discovery.feedback import FeedbackRecord, append_feedback, load_feedback_signals
+    from daily_tool_discovery.models import Candidate
+    fb = tmp_path / "feedback.jsonl"
+    append_feedback(fb, FeedbackRecord("2026-06-01", "github:a/one", "saved", "worth tracking"))
+    append_feedback(fb, FeedbackRecord("2026-06-02", "github:b/two", "saved", "worth tracking"))
+    append_feedback(fb, FeedbackRecord("2026-06-03", "github:c/bad", "ignored", "correct ignore"))
+    index = {
+        "github:a/one": Candidate(id="github:a/one", name="a/one", url="u", source="s",
+                                  summary="", tags=["mcp"], kind="x", discovered_at="2026-06-01"),
+        "github:b/two": Candidate(id="github:b/two", name="b/two", url="u", source="s",
+                                  summary="", tags=["tauri"], kind="x", discovered_at="2026-06-02"),
+    }
+    sig = load_feedback_signals(fb, index)
+    assert sig.saved_ids == frozenset({"github:a/one", "github:b/two"})
+    assert "github:c/bad" in sig.suppressed_ids
+    # recent_saved is ordered oldest->newest and resolved via index
+    assert [c.id for c in sig.recent_saved] == ["github:a/one", "github:b/two"]
