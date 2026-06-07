@@ -1,5 +1,7 @@
 # Daily Tool Discovery
 
+English | [中文](README.zh-CN.md)
+
 **Trust-first daily tool discovery: surfaces vetted dev/CLI tools, filters spam & malware, and learns a taste profile you fully control.**
 
 Daily Tool Discovery is a server-side briefing workflow for finding useful tools without
