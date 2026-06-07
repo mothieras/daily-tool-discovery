@@ -2,8 +2,10 @@ from urllib.error import HTTPError
 
 from daily_tool_discovery.curated_sources import (
     CuratedSource,
+    curated_source_from_row,
     discover_curated_candidates,
     extract_github_repos,
+    github_search_from_row,
 )
 from daily_tool_discovery.models import Candidate
 
@@ -60,9 +62,32 @@ def test_extract_github_repos_deduplicates_markdown_links():
     assert repos == ["foo/bar", "Org/tool"]
 
 
+def test_curated_source_from_row_injects_category():
+    s = curated_source_from_row({"name": "x", "url": "https://e/r.md"}, category="cat-a")
+    assert s.name == "x" and s.url == "https://e/r.md" and s.category == "cat-a"
+
+
+def test_github_search_from_row_defaults_and_category():
+    s = github_search_from_row({"name": "q", "query": "topic:mcp"}, category="cat-a")
+    assert s.category == "cat-a" and s.per_page == 10 and s.min_stars == 20
+
+
+def test_github_search_from_row_parses_min_stars():
+    s = github_search_from_row(
+        {"name": "x", "query": "agent", "min_stars": 50}, category="cat-a"
+    )
+    assert s.min_stars == 50
+
+
+def test_curated_source_from_row_missing_field_raises():
+    import pytest
+    with pytest.raises(ValueError):
+        curated_source_from_row({"name": "x"}, category="cat-a")  # no url
+
+
 def test_discover_curated_candidates_uses_github_metadata():
     candidates = discover_curated_candidates(
-        [CuratedSource(name="awesome", url="https://example.com/readme.md", kind="agent-dev-tool")],
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", category="agent-dev-tool")],
         discovered_at="2026-06-06",
         text_transport=FakeTextTransport("https://github.com/foo/bar"),
         github_client=FakeGitHubClient(),
@@ -75,7 +100,7 @@ def test_discover_curated_candidates_uses_github_metadata():
 
 def test_discover_curated_candidates_falls_back_when_metadata_fails():
     candidates = discover_curated_candidates(
-        [CuratedSource(name="awesome", url="https://example.com/readme.md", kind="agent-dev-tool")],
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", category="agent-dev-tool")],
         discovered_at="2026-06-06",
         text_transport=FakeTextTransport("https://github.com/foo/bar"),
         github_client=FakeGitHubClient(fail=True),
@@ -88,7 +113,7 @@ def test_discover_curated_candidates_falls_back_when_metadata_fails():
 
 def test_discover_curated_candidates_records_http_status_on_metadata_failure():
     candidates = discover_curated_candidates(
-        [CuratedSource(name="awesome", url="https://example.com/readme.md", kind="agent-dev-tool")],
+        [CuratedSource(name="awesome", url="https://example.com/readme.md", category="agent-dev-tool")],
         discovered_at="2026-06-06",
         text_transport=FakeTextTransport("https://github.com/foo/bar"),
         github_client=FakeHttpErrorGitHubClient(),
@@ -100,8 +125,8 @@ def test_discover_curated_candidates_records_http_status_on_metadata_failure():
 def test_discover_curated_candidates_caps_each_source():
     candidates = discover_curated_candidates(
         [
-            CuratedSource(name="first", url="https://example.com/first.md", kind="agent-dev-tool"),
-            CuratedSource(name="second", url="https://example.com/second.md", kind="agent-dev-tool"),
+            CuratedSource(name="first", url="https://example.com/first.md", category="agent-dev-tool"),
+            CuratedSource(name="second", url="https://example.com/second.md", category="agent-dev-tool"),
         ],
         discovered_at="2026-06-06",
         limit=4,
@@ -134,29 +159,3 @@ def test_discover_curated_candidates_caps_each_source():
         "curated:second",
         "curated:second",
     ]
-
-
-def test_github_search_source_parses_min_stars(tmp_path):
-    config = tmp_path / "sources.toml"
-    config.write_text(
-        '[[github_search]]\n'
-        'name = "x"\n'
-        'query = "agent"\n'
-        'kind = "agent-dev-tool"\n'
-        'min_stars = 50\n',
-        encoding="utf-8",
-    )
-    from daily_tool_discovery.curated_sources import load_github_search_sources
-    sources = load_github_search_sources(config)
-    assert sources[0].min_stars == 50
-
-
-def test_github_search_source_min_stars_defaults_to_20(tmp_path):
-    config = tmp_path / "sources.toml"
-    config.write_text(
-        '[[github_search]]\nname = "x"\nquery = "agent"\nkind = "agent-dev-tool"\n',
-        encoding="utf-8",
-    )
-    from daily_tool_discovery.curated_sources import load_github_search_sources
-    sources = load_github_search_sources(config)
-    assert sources[0].min_stars == 20

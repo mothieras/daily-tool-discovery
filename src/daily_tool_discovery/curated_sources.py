@@ -3,21 +3,18 @@ from __future__ import annotations
 import os
 import re
 import time
-import tomllib
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Protocol
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from daily_tool_discovery.github_client import GitHubClient
-from daily_tool_discovery.models import CANDIDATE_KINDS, Candidate, CandidateKind
+from daily_tool_discovery.models import Candidate, CandidateKind
 
 
 GITHUB_REPO_RE = re.compile(
     r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:[)\]#\s/?]|$)"
 )
-HIGH_SIGNAL_WORDS = ("agent", "mcp", "claude", "codex", "cli", "workflow", "obsidian")
 
 
 class TextTransport(Protocol):
@@ -36,74 +33,40 @@ class UrllibTextTransport:
 class CuratedSource:
     name: str
     url: str
-    kind: CandidateKind = "other"
+    category: str = "other"
 
 
 @dataclass(frozen=True)
 class GitHubSearchSource:
     name: str
     query: str
-    kind: CandidateKind
+    category: str = "other"
     per_page: int = 10
     min_stars: int = 20
 
 
-def load_curated_sources(path: Path) -> list[CuratedSource]:
-    if not path.exists():
-        raise FileNotFoundError(f"sources config not found: {path}")
-
-    payload = tomllib.loads(path.read_text(encoding="utf-8"))
-    rows = payload.get("sources", [])
-    if not isinstance(rows, list):
-        raise ValueError(f"Invalid sources config at {path}: sources must be a list")
-
-    sources: list[CuratedSource] = []
-    for index, row in enumerate(rows, start=1):
-        if not isinstance(row, dict):
-            raise ValueError(f"Invalid sources config at {path}: source #{index} must be a table")
-        try:
-            sources.append(
-                CuratedSource(
-                    name=str(row["name"]),
-                    url=str(row["url"]),
-                    kind=_parse_kind(row.get("kind", "other"), path, f"source #{index}"),
-                )
-            )
-        except KeyError as exc:
-            raise ValueError(
-                f"Invalid sources config at {path}: source #{index} missing {exc.args[0]!r}"
-            ) from exc
-    return sources
+def curated_source_from_row(row: dict, category: str) -> CuratedSource:
+    if not isinstance(row, dict):
+        raise ValueError(f"source must be a table, got {type(row).__name__}")
+    try:
+        return CuratedSource(name=str(row["name"]), url=str(row["url"]), category=category)
+    except KeyError as exc:
+        raise ValueError(f"source missing {exc.args[0]!r}") from exc
 
 
-def load_github_search_sources(path: Path) -> list[GitHubSearchSource]:
-    if not path.exists():
-        raise FileNotFoundError(f"sources config not found: {path}")
-
-    payload = tomllib.loads(path.read_text(encoding="utf-8"))
-    rows = payload.get("github_search", [])
-    if not isinstance(rows, list):
-        raise ValueError(f"Invalid sources config at {path}: github_search must be a list")
-
-    searches: list[GitHubSearchSource] = []
-    for index, row in enumerate(rows, start=1):
-        if not isinstance(row, dict):
-            raise ValueError(f"Invalid sources config at {path}: github_search #{index} must be a table")
-        try:
-            searches.append(
-                GitHubSearchSource(
-                    name=str(row["name"]),
-                    query=str(row["query"]),
-                    kind=_parse_kind(row.get("kind", "other"), path, f"github_search #{index}"),
-                    per_page=int(row.get("per_page", 10)),
-                    min_stars=int(row.get("min_stars", 20)),
-                )
-            )
-        except KeyError as exc:
-            raise ValueError(
-                f"Invalid sources config at {path}: github_search #{index} missing {exc.args[0]!r}"
-            ) from exc
-    return searches
+def github_search_from_row(row: dict, category: str) -> GitHubSearchSource:
+    if not isinstance(row, dict):
+        raise ValueError(f"github_search must be a table, got {type(row).__name__}")
+    try:
+        return GitHubSearchSource(
+            name=str(row["name"]),
+            query=str(row["query"]),
+            category=category,
+            per_page=int(row.get("per_page", 10)),
+            min_stars=int(row.get("min_stars", 20)),
+        )
+    except KeyError as exc:
+        raise ValueError(f"github_search missing {exc.args[0]!r}") from exc
 
 
 def discover_curated_candidates(
@@ -164,7 +127,7 @@ def discover_github_search_candidates(
             candidates = github.search_repositories(
                 query=search.query,
                 discovered_at=discovered_at,
-                kind=search.kind,
+                kind=search.category,
                 per_page=search.per_page,
                 min_stars=search.min_stars,
             )
@@ -214,7 +177,7 @@ def _candidate_from_repo(
         return github_client.get_repository(
             full_name=full_name,
             discovered_at=discovered_at,
-            kind=source.kind,
+            kind=source.category,
             source=source_name,
         )
     except Exception as exc:
@@ -225,7 +188,7 @@ def _candidate_from_repo(
             source=source_name,
             summary="",
             tags=[],
-            kind=_fallback_kind(full_name, source.kind),
+            kind=source.category,
             discovered_at=discovered_at,
             metadata={
                 "metadata_error": True,
@@ -235,15 +198,6 @@ def _candidate_from_repo(
         )
 
 
-def _fallback_kind(full_name: str, default: CandidateKind) -> CandidateKind:
-    lowered = full_name.lower()
-    if default != "other":
-        return default
-    if any(word in lowered for word in HIGH_SIGNAL_WORDS):
-        return "agent-dev-tool"
-    return "open-source-small-tool"
-
-
 def _clean_repo_name(value: str) -> str:
     return value.removesuffix(".git").strip("/")
 
@@ -251,13 +205,6 @@ def _clean_repo_name(value: str) -> str:
 def _is_curated_list_repo(full_name: str) -> bool:
     repo_name = full_name.rsplit("/", 1)[-1].lower()
     return repo_name == "awesome" or repo_name.startswith("awesome-")
-
-
-def _parse_kind(value: object, path: Path, context: str) -> CandidateKind:
-    kind = str(value)
-    if kind not in CANDIDATE_KINDS:
-        raise ValueError(f"Invalid sources config at {path}: {context} has invalid kind {kind!r}")
-    return kind  # type: ignore[return-value]
 
 
 def _metadata_delay_seconds(github_client: GitHubClient | None) -> float:
