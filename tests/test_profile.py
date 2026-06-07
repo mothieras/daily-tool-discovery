@@ -168,3 +168,13 @@ def test_annotate_taste_per_tag_and_max_cap():
 def test_annotate_taste_noop_when_no_learned_tags():
     c = annotate_taste(_cand(tags=["mcp"]), set(), RecommendConfig())
     assert "taste_points" not in c.metadata
+
+
+def test_shipped_example_profile_loads():
+    prof = load_profile(Path("config/profile.example.toml"))
+    names = [c.name for c in prof.categories]
+    assert "agent-dev" in names
+    agent = next(c for c in prof.categories if c.name == "agent-dev")
+    assert any("mcp" in s.url or "mcp" in s.name for s in agent.sources)
+    assert agent.searches  # has at least one search
+    assert prof.trust.min_stars == 20
