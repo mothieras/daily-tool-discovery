@@ -24,19 +24,15 @@ if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   echo "Warning: GITHUB_TOKEN is not set. GitHub metadata may hit low unauthenticated rate limits." >&2
 fi
 
-# Assemble a self-contained skill bundle (stdlib-only; no venv/pip).
+# Drop the self-contained skill folder into the Hermes skills dir (stdlib-only; no venv/pip).
 rm -rf "$SKILL_DIR"
-mkdir -p "$SKILL_DIR"
-cp "$ROOT/hermes-skills/daily-tool-discovery/SKILL.md" "$SKILL_DIR/SKILL.md"
-cp "$ROOT/run.py" "$SKILL_DIR/run.py"
-cp -R "$ROOT/src/daily_tool_discovery" "$SKILL_DIR/daily_tool_discovery"
-cp -R "$ROOT/config" "$SKILL_DIR/config"
-cp -R "$ROOT/seeds" "$SKILL_DIR/seeds"
+mkdir -p "$(dirname "$SKILL_DIR")"
+cp -r "$ROOT/daily-tool-discovery" "$SKILL_DIR"
 
-# Create the data root and seed it by running the bundle once (dry-run needs no token;
+# Create the data root and seed it by running the skill once (dry-run needs no token;
 # it also triggers ensure_data_root to copy the example profile + seed into the data root).
 mkdir -p "$DATA_ROOT"
-DAILY_TOOL_DISCOVERY_HOME="$DATA_ROOT" python3 "$SKILL_DIR/run.py" dry-run >/tmp/daily-tool-discovery-smoke.md 2>&1 || true
+DAILY_TOOL_DISCOVERY_HOME="$DATA_ROOT" python3 "$SKILL_DIR/scripts/run.py" dry-run >/tmp/daily-tool-discovery-smoke.md 2>&1 || true
 
 # Thin cron wrapper.
 mkdir -p "$HERMES_HOME/scripts"
@@ -49,12 +45,12 @@ SKILL_DIR="$SKILL_DIR"
 TODAY="\$(date +%F)"
 
 [ -f "\$HOME/.hermes/.env" ] && set -a && . "\$HOME/.hermes/.env" && set +a
-DAILY_TOOL_DISCOVERY_HOME="\$DATA_ROOT" python3 "\$SKILL_DIR/run.py" discover --limit $LIMIT >/dev/null
+DAILY_TOOL_DISCOVERY_HOME="\$DATA_ROOT" python3 "\$SKILL_DIR/scripts/run.py" discover --limit $LIMIT >/dev/null
 cat "\$DATA_ROOT/briefings/\$TODAY.md"
 SH
 chmod +x "$HERMES_HOME/scripts/daily-tool-discovery.sh"
 
-echo "Installed Daily Tool Discovery skill bundle at $SKILL_DIR"
+echo "Installed Daily Tool Discovery skill at $SKILL_DIR"
 echo "Data root: $DATA_ROOT"
 echo "Smoke output: /tmp/daily-tool-discovery-smoke.md"
 echo "Hermes script: $HERMES_HOME/scripts/daily-tool-discovery.sh"

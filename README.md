@@ -21,9 +21,9 @@ built to avoid both.
   credibility. A repo below your star floor can **never** be a "Try Today" pick no matter
   how perfectly it matches keywords. Auto-generated usernames + 0 stars/forks + hollow
   READMEs are quarantined.
-- **Configurable taste.** What counts as relevant lives in `config/profile.toml`, not in
+- **Configurable taste.** What counts as relevant lives in `profile.toml`, not in
   code. Edit categories, their signal tags, weights, and sources to **retarget the tool to
-  any domain** — see `config/profiles/web-frontend.example.toml`.
+  any domain** — see `daily-tool-discovery/templates/profiles/web-frontend.example.toml`.
 - **It won't repeat itself.** Items you've already been shown cool down for a novelty
   window, so the daily briefing actually rotates.
 - **It learns, carefully.** Saving a project gently biases future picks toward similar
@@ -50,22 +50,24 @@ A briefing has five sections:
 - **🎲 Explore** — one deliberately off-profile, trust-vetted pick to break the filter bubble.
 - A footer reports how many suspicious candidates were filtered out.
 
-## Use as a skill (no install)
+## Use as a skill (drop-in, no install)
 
-The project is stdlib-only and self-contained, so you can run it with zero install.
-Drop or clone the folder anywhere (or into an agent's skill directory), make sure
-`python3` is 3.11+ and a `GITHUB_TOKEN` is exported, then run the bundled entry point:
+The `daily-tool-discovery/` folder is a self-contained, stdlib-only Hermes skill: copy
+that one folder into your agent's skills directory and run its bundled entry point — no
+venv or pip required. Make sure `python3` is 3.11+ and a `GITHUB_TOKEN` is exported:
 
 ```bash
+cp -r daily-tool-discovery ~/.hermes/skills/software-development/daily-tool-discovery
 export GITHUB_TOKEN=ghp_...
-python3 run.py discover
+python3 ~/.hermes/skills/software-development/daily-tool-discovery/scripts/run.py discover
 ```
 
-`run.py` works whether the package sits under `src/` (this repo) or flattened next to
-`run.py` (a skill bundle). State lives in `~/.daily-tool-discovery` (override with
-`DAILY_TOOL_DISCOVERY_HOME`); the first run copies the example profile and seed there, and
-the briefing is written to `~/.daily-tool-discovery/briefings/<today>.md`. `dry-run`,
-`save`, `deny`, and `feedback` run the same way (`python3 run.py dry-run`).
+`scripts/run.py` resolves everything from its own location, so the copied folder works
+standalone. State lives in `~/.daily-tool-discovery` (override with
+`DAILY_TOOL_DISCOVERY_HOME`); the first run copies the example profile and seed (from the
+skill's `templates/`) there, and the briefing is written to
+`~/.daily-tool-discovery/briefings/<today>.md`. `dry-run`, `save`, `deny`, and `feedback`
+run the same way (`python3 .../scripts/run.py dry-run`).
 
 If you prefer a `pip`-installed console script instead, use the path below.
 
@@ -83,12 +85,13 @@ python -m pip install -e ".[dev]"
 daily-tool-discovery discover --root . --date 2026-06-06 --limit 80
 ```
 
-By default this reads `config/profile.toml` if it exists, otherwise
-`config/profile.example.toml`. Discovery combines three input paths:
+By default this reads `config/profile.toml` (under `--root`) if it exists, otherwise the
+shipped `templates/profile.example.toml`. Discovery combines three input paths:
 
 - `seeds/manual.jsonl`: friend recommendations and known-good taste seeds. The server
-  installer copies `seeds/manual.example.jsonl` here on first install. `discover` uses
-  these as taste references and filters the seed URLs out of the daily candidate list.
+  installer copies the skill's `templates/manual.example.jsonl` here on first install.
+  `discover` uses these as taste references and filters the seed URLs out of the daily
+  candidate list.
 - `[[category.source]]`: curated README-style source lists (awesome-lists). Each source
   gets a capped share so one large list cannot fill the whole candidate pool.
 - `[[category.search]]`: direct GitHub Search queries (topic- and time-bounded for fresh
@@ -107,8 +110,8 @@ quota, and curated metadata can fall back to empty summaries with
 
 ## The taste profile
 
-Taste is data, not code. `config/profile.toml` (falling back to
-`config/profile.example.toml`) defines everything:
+Taste is data, not code. The active `profile.toml` (falling back to the shipped
+`templates/profile.example.toml`) defines everything:
 
 ```toml
 [[category]]
@@ -173,7 +176,7 @@ the seeds themselves:
 
 ```bash
 mkdir -p seeds
-cp seeds/manual.example.jsonl seeds/manual.jsonl
+cp daily-tool-discovery/templates/manual.example.jsonl seeds/manual.jsonl
 daily-tool-discovery dry-run --root . --date 2026-06-06
 ```
 
@@ -197,11 +200,11 @@ cd ~/apps/daily-tool-discovery
 bash scripts/install-hermes-server.sh
 ```
 
-This assembles a self-contained skill bundle (the package code + `SKILL.md` + example
-profile) into `~/.hermes/skills/`, creates the data root `~/.daily-tool-discovery` with a
-starter `profile.toml`, writes `~/.hermes/scripts/daily-tool-discovery.sh`, and runs one
-smoke discovery — no venv or pip needed (stdlib only). It does not create cron jobs.
-Useful checks:
+This copies the self-contained `daily-tool-discovery/` skill folder (the package code +
+`SKILL.md` + `templates/`) into `~/.hermes/skills/`, creates the data root
+`~/.daily-tool-discovery` with a starter `profile.toml`, writes
+`~/.hermes/scripts/daily-tool-discovery.sh`, and runs one smoke discovery — no venv or pip
+needed (stdlib only). It does not create cron jobs. Useful checks:
 
 ```bash
 ~/.hermes/scripts/daily-tool-discovery.sh
