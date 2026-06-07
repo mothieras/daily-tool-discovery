@@ -97,3 +97,9 @@ def test_with_metadata_merges_and_returns_new_candidate():
     assert updated.metadata["trust_tier"] == "review"
     assert updated.metadata["stars"] == 5
     assert updated.tags == ("cli",)
+
+
+def test_review_is_a_valid_decision_action():
+    from daily_tool_discovery.models import CandidateDecision
+    d = CandidateDecision(candidate_id="x", action="review", score=10, reason="r")
+    assert d.action == "review"

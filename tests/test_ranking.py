@@ -1,100 +1,59 @@
+from datetime import date
+
 from daily_tool_discovery.models import Candidate
-from daily_tool_discovery.ranking import rank_candidates, select_daily_candidates
+from daily_tool_discovery.ranking import (
+    rank_candidates,
+    select_from_pool,
+    select_daily_candidates,
+)
+
+TODAY = date(2026, 6, 7)
 
 
-def candidate(id, kind, tags, stars=0, manual=False, metadata=None):
-    metadata = metadata or {}
-    metadata.setdefault("stars", stars)
-    metadata.setdefault("manual_seed", manual)
+def _c(cid, kind="agent-dev-tool", tags=("agent", "mcp", "cli"), **md):
     return Candidate(
-        id=id,
-        name=id,
-        url=f"https://example.com/{id}",
-        source="manual" if manual else "github",
-        summary="",
-        tags=tags,
-        kind=kind,
-        discovered_at="2026-06-05",
-        metadata=metadata,
+        id=cid, name=cid, url=f"https://github.com/{cid}", source="github_search:x",
+        summary="s", tags=list(tags), kind=kind, discovered_at="2026-06-07", metadata=md,
     )
 
 
-def test_rank_candidates_prefers_agent_dev_and_manual_seeds():
-    ranked = rank_candidates(
-        [
-            candidate("generic", "other", ["ai"], stars=10000),
-            candidate("codeisland", "agent-dev-tool", ["agent", "ai-coding"], stars=50, manual=True),
-            candidate("floral", "open-source-small-tool", ["tauri", "markdown"], stars=3500),
-        ]
-    )
-
-    assert [item.candidate.id for item in ranked] == ["codeisland", "floral", "generic"]
-    assert ranked[0].score > ranked[1].score
+def test_keyword_stuffed_zero_star_never_becomes_try():
+    spam = _c("github:Bot/spam", stars=0, forks=0, pushed_at="2026-06-06T00:00:00Z")
+    real = _c("github:real/tool", stars=800, forks=120, pushed_at="2026-06-01T00:00:00Z")
+    selected = select_daily_candidates(trusted=[real], review=[spam], today=TODAY)
+    by_id = {c.id: d for c, d in selected}
+    assert by_id["github:Bot/spam"].action == "review"
+    assert by_id["github:real/tool"].action in {"try", "save"}
+    # spam never appears as try regardless of keyword match
+    assert all(d.action != "try" for c, d in selected if c.id == "github:Bot/spam")
 
 
-def test_select_daily_candidates_caps_output_at_three():
-    selected = select_daily_candidates(
-        [
-            candidate("a", "agent-dev-tool", ["agent"], stars=10),
-            candidate("b", "agent-dev-tool", ["mcp"], stars=10),
-            candidate("c", "open-source-small-tool", ["tauri"], stars=10),
-            candidate("d", "other", ["marketing"], stars=9999),
-        ],
-        limit=3,
-    )
-
-    assert len(selected) == 3
-    assert [decision.action for _, decision in selected] == ["try", "save", "save"]
+def test_freshness_bonus_only_with_stars():
+    fresh_popular = _c("github:a/popular", stars=200, pushed_at="2026-06-06T00:00:00Z")
+    fresh_lowstar = _c("github:b/lowstar", stars=2, pushed_at="2026-06-06T00:00:00Z")
+    ranked = {r.candidate.id: r.score for r in rank_candidates([fresh_popular, fresh_lowstar], TODAY)}
+    # recency adds to the popular one; the low-star one gets no recency bonus
+    assert ranked["github:a/popular"] > ranked["github:b/lowstar"]
 
 
-def test_rank_candidates_breaks_equal_scores_deterministically():
-    first = [
-        candidate("alpha", "agent-dev-tool", ["agent"], stars=10),
-        candidate("beta", "agent-dev-tool", ["mcp"], stars=10),
-    ]
-    second = list(reversed(first))
-
-    assert [item.candidate.id for item in rank_candidates(first)] == ["alpha", "beta"]
-    assert [item.candidate.id for item in rank_candidates(second)] == ["alpha", "beta"]
+def test_stale_popular_penalized_relative_to_maintained():
+    maintained = _c("github:a/m", stars=500, pushed_at="2026-05-01T00:00:00Z")
+    stale = _c("github:b/s", stars=500, pushed_at="2020-01-01T00:00:00Z")
+    ranked = {r.candidate.id: r.score for r in rank_candidates([maintained, stale], TODAY)}
+    assert ranked["github:a/m"] > ranked["github:b/s"]
 
 
-def test_rank_candidates_uses_taste_profile_as_soft_boost():
-    ranked = rank_candidates(
-        [
-            candidate("plain", "open-source-small-tool", ["tauri"], stars=50),
-            candidate(
-                "taste-match",
-                "open-source-small-tool",
-                ["tauri", "markdown"],
-                stars=50,
-                metadata={
-                    "stars": 50,
-                    "taste_profile_match": True,
-                    "taste_profile_kind_match": True,
-                    "taste_profile_tags": ["markdown", "tauri"],
-                },
-            ),
-        ]
-    )
-
-    assert [item.candidate.id for item in ranked] == ["taste-match", "plain"]
+def test_select_from_pool_assigns_try_to_top_then_save():
+    top = _c("github:a/top", stars=900, forks=200, pushed_at="2026-06-01T00:00:00Z")
+    second = _c("github:b/second", stars=30, pushed_at="2026-05-01T00:00:00Z")
+    selected = select_from_pool([second, top], today=TODAY, limit=3)
+    assert selected[0][1].action == "try"
+    assert selected[0][0].id == "github:a/top"
+    assert selected[1][1].action == "save"
 
 
-def test_select_daily_candidates_chooses_same_try_candidate_for_reversed_input():
-    first = [
-        candidate("alpha", "agent-dev-tool", ["agent"], stars=10),
-        candidate("beta", "agent-dev-tool", ["mcp"], stars=10),
-    ]
-    second = list(reversed(first))
-
-    first_selected = select_daily_candidates(first, limit=2)
-    second_selected = select_daily_candidates(second, limit=2)
-
-    assert [(candidate.id, decision.action) for candidate, decision in first_selected] == [
-        ("alpha", "try"),
-        ("beta", "save"),
-    ]
-    assert [(candidate.id, decision.action) for candidate, decision in second_selected] == [
-        ("alpha", "try"),
-        ("beta", "save"),
-    ]
+def test_review_bucket_capped_and_labeled():
+    reviews = [_c(f"github:x/{i}", stars=1) for i in range(5)]
+    selected = select_daily_candidates(trusted=[], review=reviews, today=TODAY, review_limit=2)
+    review_items = [d for c, d in selected if d.action == "review"]
+    assert len(review_items) == 2

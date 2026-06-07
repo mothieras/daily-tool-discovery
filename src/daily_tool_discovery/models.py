@@ -7,14 +7,14 @@ from typing import Any, Literal
 
 
 CandidateKind = Literal["agent-dev-tool", "open-source-small-tool", "other"]
-DecisionAction = Literal["try", "save", "ignore"]
+DecisionAction = Literal["try", "save", "ignore", "review"]
 
 CANDIDATE_KINDS: tuple[CandidateKind, ...] = (
     "agent-dev-tool",
     "open-source-small-tool",
     "other",
 )
-DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore")
+DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore", "review")
 
 
 @dataclass(frozen=True)
