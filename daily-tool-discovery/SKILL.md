@@ -63,7 +63,7 @@ python3 ~/.hermes/skills/software-development/daily-tool-discovery/scripts/run.p
 
 (That absolute path is the default install location; if `HERMES_HOME` is customized, adjust accordingly.)
 
-Everything lives in the active `profile.toml` (falls back to `templates/profile.example.toml`).
+Everything lives in the active profile at `~/.daily-tool-discovery/profile.toml`（首次 `discover` 自动从 `templates/profile.example.toml` 初始化）。
 
 - **Add/remove a source:** edit a category's `[[category.source]]` (awesome-list README
   URL) or `[[category.search]]` (GitHub query). A good source is an awesome-list README
