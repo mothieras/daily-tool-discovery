@@ -24,62 +24,47 @@ Expected artifacts:
 
 If a Hermes cron job injects script output, treat that output as the generated briefing for the day.
 
-## What makes a good project
+## What makes a good project (universal method)
 
-Trust signals are first-class. Judge candidates by:
+Trust signals are first-class — judge by them before relevance:
 
-1. Community: GitHub stars are a floor, not a tiebreaker. A project with fewer than 20
-   stars is never a direct "try" — it must be reviewed and audited by the user first.
-2. Maintenance: recent commits/pushes and a non-archived repo.
-3. Publisher credibility: a real account with history and followers; an organization is
-   stronger than a brand-new lone user. Auto-generated usernames (random word + random
-   word + digits) with 0 stars/forks and a hollow README are spam/malware — never
-   recommend them.
-4. Activity: open issues/PRs indicate real usage and maintenance.
-5. Relevance: agent/dev tooling (MCP, Codex, Claude Code, Hermes, CLI/dev workflow,
-   automation) and local-first small tools. Relevance decides which trusted candidate to
-   pick; it never overrides the trust floor.
+1. Community: stars are a floor, not a tiebreaker. Below the profile's `min_stars` a
+   project is never a direct "try"; it must be reviewed/audited first.
+2. Maintenance: recent pushes; not archived.
+3. Publisher credibility: real account with history/followers; org > brand-new lone user.
+   Auto-generated usernames + 0 stars/forks + hollow README = spam/malware; never recommend.
+4. Activity: open issues/PRs show real usage.
+5. Relevance = how well the project matches the **active profile's** interests. Relevance
+   chooses among trusted candidates; it never overrides the trust floor.
 
-Never recommend a project for direct use just because it matches keywords. Keyword/topic
-matches are cheap to fake; community and maintenance signals are not. Manual seeds express
-the user's taste; do not repeatedly recommend the seed items themselves unless asked.
+## How to operate (config only — never edit code)
 
-## How to use this skill
+Everything lives in the active `profile.toml` (falls back to `config/profile.example.toml`).
 
-The CLI owns discovery, metadata, dedup, trust tiering, and first-pass scoring. Read its
-artifacts; do not browse for new candidates.
+- **Add/remove a source:** edit a category's `[[category.source]]` (awesome-list README
+  URL) or `[[category.search]]` (GitHub query). A good source is an awesome-list README
+  densely linking external repos; skill monorepos and prompt lists yield almost nothing
+  (vetted 2026-06-07).
+- **Retarget the domain / change the bias:** edit categories' `signal_tags` and `weight`,
+  add/remove categories, and change `topic:`/`created:`/`pushed:` in searches.
+- **Deny a project:** `daily-tool-discovery deny --pattern owner/repo` (glob ok) — never
+  surfaced again.
+- **Save a project:** `daily-tool-discovery save --candidate-id github:owner/repo` —
+  bookmarks it, stops re-recommending it, and gently biases future picks toward similar
+  tags (bounded; see `[recommend]`).
+- **Tune trust/recommender:** `[trust]` (stars floor, novelty) and `[recommend]` (taste
+  caps, exploration) blocks.
 
-- `Try Today` items are already trust-vetted (>= 20 stars, maintained, credible
-  publisher) — safe to propose for a 15-minute trial.
-- `Review yourself` items are on-topic but low-trust — surface them for the user's manual
-  audit; never endorse them as `try` and never suggest running them blindly.
-- The `Filtered N suspicious candidates` line reports rejected spam/malware; the full
-  records remain in `candidates/YYYY-MM-DD.jsonl` for tracing.
+## How to consume the briefing
 
-## Boundaries
-
-Do not:
-
-- Install tools.
-- Run setup commands from candidate projects.
-- Purchase subscriptions.
-- Mutate the environment.
-- Browse for additional candidates unless the user explicitly asks.
-- Recommend papers, topic research, or generic news.
+Buckets: **Try Today** (trust-vetted, on-profile) / **Save** / **Review yourself**
+(low-trust, audit before running) / **🎲 Explore** / **Filtered N**. The 🎲 Explore pick is
+deliberately outside the profile — **do not dismiss it for being off-profile; it exists to
+break the filter bubble.**
 
 ## Output
 
-Return at most three items:
-
-- `try`: at most one trust-vetted item worth a 15-minute trial today.
-- `save`: trust-vetted but not urgent.
-
-Surface `Review yourself` items separately as "audit before running" — do not classify
-them as `try`. Prefer no `try` item over a weak forced recommendation.
-
-For each item, include:
-
-- candidate name and URL
-- verdict
-- one concrete reason grounded in the provided artifact (cite a trust signal)
-- optional `daily-tool-discovery feedback` command the user can run later
+Return at most three items: at most one `try` (trust-vetted, worth a 15-minute trial) and
+up to two `save`. Surface Review/Explore items as-is; never label them `try`. Prefer no
+`try` over a weak forced pick. For each item give name, URL, verdict, one concrete reason
+citing a trust signal, and an optional `daily-tool-discovery save`/`feedback` command.

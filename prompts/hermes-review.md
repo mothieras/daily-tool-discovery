@@ -28,3 +28,6 @@ Return output compatible with the existing briefing/feedback flow:
 - Optional feedback note that can be copied into `daily-tool-discovery feedback`.
 
 Return at most three selected items. Prefer no "try" item over a weak forced recommendation.
+
+Relevance is defined by the active profile; the 🎲 Explore item is intentionally
+off-profile — surface it, don't dismiss it.

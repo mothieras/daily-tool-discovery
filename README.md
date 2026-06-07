@@ -86,31 +86,37 @@ Run the live discovery pipeline:
 daily-tool-discovery discover --root . --date 2026-06-06 --limit 80
 ```
 
-By default this reads `config/sources.toml` if it exists, otherwise `config/sources.example.toml`.
+By default this reads `config/profile.toml` if it exists, otherwise `config/profile.example.toml`.
 
 Discovery combines three input paths:
 
 - `seeds/manual.jsonl`: friend recommendations and known-good taste seeds. The server installer copies `seeds/manual.example.jsonl` here on first install. `discover` uses these seeds as ranking taste signals and filters the seed URLs out of the daily candidate list.
-- `[[sources]]`: curated README-style source lists. Each source gets a capped share so one large list cannot fill the whole candidate pool.
-- `[[github_search]]`: direct GitHub Search queries. `discover` reserves part of the candidate pool for search so it still runs even when source lists are large.
+- `[[category.source]]`: curated README-style source lists. Each source gets a capped share so one large list cannot fill the whole candidate pool.
+- `[[category.search]]`: direct GitHub Search queries. `discover` reserves part of the candidate pool for search so it still runs even when source lists are large.
 
 Artifacts:
 
 - `candidates/YYYY-MM-DD.jsonl`
 - `briefings/YYYY-MM-DD.md`
 
-## Briefing buckets
+## Profiles and briefing buckets
 
-- **Try Today**: trust-vetted picks (>= 20 stars, maintained, credible publisher).
-- **Save**: trust-vetted but not urgent.
-- **Review yourself**: on-topic but low community signal — audit before running; never run blindly.
-- A footer line reports how many suspicious candidates were filtered out. Rejected
-  records still appear in `candidates/YYYY-MM-DD.jsonl` for inspection.
+Taste lives in `config/profile.toml` (falls back to `config/profile.example.toml`): each
+`[[category]]` has `signal_tags`, a `weight`, and its own sources/searches; `[trust]` and
+`[recommend]` hold thresholds; `[lists] deny` plus `denylist.txt` suppress repos. Retarget
+the tool to any domain by editing the profile — see `config/profiles/web-frontend.example.toml`.
 
-Trust thresholds are configurable via `--min-stars` / `DAILY_TOOL_DISCOVERY_MIN_STARS`
-(default 20) and novelty cooldown via `--novelty-days` /
-`DAILY_TOOL_DISCOVERY_NOVELTY_DAYS` (default 30). Already-surfaced items cool down for the
-novelty window so the daily briefing rotates instead of repeating.
+Briefing buckets:
+
+- **Try Today** / **Save**: trust-vetted picks matching your profile.
+- **Review yourself**: on-topic but low community signal — audit before running.
+- **🎲 Explore**: a deliberately off-profile, trust-vetted pick to break the filter bubble.
+- A footer reports how many suspicious candidates were filtered.
+
+Operate it with `daily-tool-discovery save --candidate-id <id>` (bookmark + gentle bias)
+and `daily-tool-discovery deny --pattern owner/repo` (never surface). Thresholds:
+`--min-stars`/`DAILY_TOOL_DISCOVERY_MIN_STARS`, `--novelty-days`/`DAILY_TOOL_DISCOVERY_NOVELTY_DAYS`,
+or the profile's `[trust]`/`[recommend]`.
 
 ## Manual Seeds
 

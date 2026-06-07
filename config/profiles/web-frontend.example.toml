@@ -1,0 +1,30 @@
+[meta]
+name = "web-frontend"
+
+[[category]]
+name = "frameworks"
+weight = 2
+signal_tags = ["react", "vue", "svelte", "solid", "astro", "nextjs", "remix"]
+  [[category.source]]
+  name = "awesome-react"
+  url = "https://raw.githubusercontent.com/enaqx/awesome-react/master/README.md"
+  [[category.search]]
+  name = "fresh-frameworks"
+  query = "topic:react created:>2026-03-01"
+  min_stars = 100
+
+[[category]]
+name = "build-css"
+weight = 1
+signal_tags = ["vite", "tailwind", "css", "bundler", "eslint", "typescript", "postcss"]
+  [[category.search]]
+  name = "fresh-build-tools"
+  query = "topic:vite created:>2026-03-01"
+  min_stars = 50
+
+[trust]
+min_stars = 50
+novelty_days = 30
+
+[recommend]
+explore_slots = 1

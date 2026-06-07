@@ -34,6 +34,10 @@ if [[ ! -f "$ROOT/seeds/manual.jsonl" && -f "$ROOT/seeds/manual.example.jsonl" ]
   cp "$ROOT/seeds/manual.example.jsonl" "$ROOT/seeds/manual.jsonl"
 fi
 
+if [[ ! -f "$ROOT/config/profile.toml" && -f "$ROOT/config/profile.example.toml" ]]; then
+  cp "$ROOT/config/profile.example.toml" "$ROOT/config/profile.toml"
+fi
+
 mkdir -p "$HERMES_HOME/scripts"
 cat > "$HERMES_HOME/scripts/daily-tool-discovery.sh" <<SH
 #!/usr/bin/env bash
