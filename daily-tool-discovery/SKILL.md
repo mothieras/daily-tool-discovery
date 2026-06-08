@@ -81,7 +81,7 @@ Everything lives in the active profile at `~/.daily-tool-discovery/config/profil
 ## How to consume the briefing
 
 Buckets: **Try Today** (trust-vetted, on-profile) / **Recommended** / **Review yourself**
-(low-trust, audit before running) / **🎲 Explore** / **Filtered N**. The pipeline only
+(low-trust **or stale** — audit / confirm it's still maintained before running) / **🎲 Explore** / **Filtered N**. The pipeline only
 *recommends*; **`save` is the user's action** — bookmarking a pick is a separate, deliberate
 command (see below), never automatic. The 🎲 Explore pick is
 deliberately outside the profile — **do not dismiss it for being off-profile; it exists to

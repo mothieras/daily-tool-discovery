@@ -136,6 +136,11 @@ def _reason(candidate: Candidate) -> str:
 
 def _caveat(candidate: Candidate, action: str) -> str:
     if action == "review":
+        flags = candidate.metadata.get("risk_flags") or []
+        if "archived" in flags:
+            return "Archived — no longer maintained; audit before relying on it."
+        if "stale" in flags:
+            return "Not updated recently — verify it's still maintained before relying on it."
         return "Low community signal — audit before running; do not run blindly."
     if action == "explore":
         return "Outside your usual interests — included on purpose; skim it."

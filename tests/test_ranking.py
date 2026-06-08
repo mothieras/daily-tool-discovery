@@ -56,6 +56,18 @@ def test_reason_names_matched_tags():
     assert ranked["github:a/x"] == "Matches your 'agent-dev' interest (agent, mcp)."
 
 
+def test_review_caveat_reflects_reason_not_just_community():
+    stale = _c("github:a/stale", risk_flags=["stale"])
+    archived = _c("github:b/arch", risk_flags=["archived", "stale"])  # archived wins
+    lowstar = _c("github:c/tiny", risk_flags=["no-community"])
+    sel = select_daily_candidates(trusted=[], review=[stale, archived, lowstar],
+                                  today=TODAY, review_limit=3)
+    cav = {c.id: d.caveat.lower() for c, d in sel}
+    assert "not updated recently" in cav["github:a/stale"]
+    assert "archived" in cav["github:b/arch"]
+    assert "community" in cav["github:c/tiny"]
+
+
 def test_explore_picks_off_taste_trusted_candidate():
     on = _c("github:a/on", stars=900, taste_matched=True, relevance_points=24,
             pushed_at="2026-06-01T00:00:00Z")
