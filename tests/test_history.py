@@ -4,7 +4,7 @@ from daily_tool_discovery.history import record_surfaced, load_recent_surfaced_i
 from daily_tool_discovery.models import Candidate, CandidateDecision
 
 
-def _pair(cid, action="save"):
+def _pair(cid, action="recommend"):
     c = Candidate(id=cid, name=cid, url="u", source="s", summary="", tags=[],
                   kind="other", discovered_at="2026-06-07")
     d = CandidateDecision(candidate_id=cid, action=action, score=1, reason="r")

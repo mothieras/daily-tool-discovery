@@ -7,9 +7,9 @@ from typing import Any, Literal
 
 
 CandidateKind = str  # free-form provenance label (a profile category name, or "other")
-DecisionAction = Literal["try", "save", "ignore", "review", "explore"]
+DecisionAction = Literal["try", "recommend", "review", "explore"]
 
-DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "save", "ignore", "review", "explore")
+DECISION_ACTIONS: tuple[DecisionAction, ...] = ("try", "recommend", "review", "explore")
 
 
 @dataclass(frozen=True)

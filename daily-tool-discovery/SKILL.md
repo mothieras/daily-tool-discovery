@@ -1,6 +1,6 @@
 ---
 name: daily-tool-discovery
-description: "Use when reviewing or generating the Daily Tool Discovery briefing — runs the bundled pipeline to surface trust-vetted dev/CLI/MCP tools and select try/save items."
+description: "Use when reviewing or generating the Daily Tool Discovery briefing — runs the bundled pipeline to surface trust-vetted dev/CLI/MCP tools and select try/recommend items."
 version: 0.2.0
 author: Mothieras
 license: MIT
@@ -80,14 +80,17 @@ Everything lives in the active profile at `~/.daily-tool-discovery/config/profil
 
 ## How to consume the briefing
 
-Buckets: **Try Today** (trust-vetted, on-profile) / **Save** / **Review yourself**
-(low-trust, audit before running) / **🎲 Explore** / **Filtered N**. The 🎲 Explore pick is
+Buckets: **Try Today** (trust-vetted, on-profile) / **Recommended** / **Review yourself**
+(low-trust, audit before running) / **🎲 Explore** / **Filtered N**. The pipeline only
+*recommends*; **`save` is the user's action** — bookmarking a pick is a separate, deliberate
+command (see below), never automatic. The 🎲 Explore pick is
 deliberately outside the profile — **do not dismiss it for being off-profile; it exists to
 break the filter bubble.**
 
 ## Output
 
 Return at most three items: at most one `try` (trust-vetted, worth a 15-minute trial) and
-up to two `save`. Surface Review/Explore items as-is; never label them `try`. Prefer no
-`try` over a weak forced pick. For each item give name, URL, verdict, one concrete reason
-citing a trust signal, and an optional `daily-tool-discovery save`/`feedback` command.
+up to two `recommend` items worth bookmarking. Surface Review/Explore items as-is; never
+label them `try`. Prefer no `try` over a weak forced pick. For each item give name, URL,
+verdict, one concrete reason citing a trust signal, and an optional
+`daily-tool-discovery save`/`feedback` command for the user to run.

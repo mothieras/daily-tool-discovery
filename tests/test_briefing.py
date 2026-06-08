@@ -19,12 +19,12 @@ def test_renders_three_buckets():
     selected = [
         _pair("github:a/try", "try", stars=900, forks=100, open_issues=5,
               pushed_at="2026-06-01T00:00:00Z", owner_login="alice", owner_type="User"),
-        _pair("github:b/save", "save", stars=50, owner_login="bob"),
+        _pair("github:b/rec", "recommend", stars=50, owner_login="bob"),
         _pair("github:c/review", "review", stars=2, owner_login="carol"),
     ]
     out = render_briefing("2026-06-07", selected)
     assert "## Try Today" in out
-    assert "## Save" in out
+    assert "## Recommended" in out
     assert "## Review yourself" in out
 
 
@@ -60,7 +60,7 @@ def test_renders_repo_description():
 def test_omits_description_line_when_summary_empty():
     candidate = Candidate(id="github:a/b", name="a/b", url="u", source="s", summary="",
                           tags=[], kind="other", discovered_at="2026-06-07", metadata={})
-    decision = CandidateDecision(candidate_id="github:a/b", action="save", score=10, reason="r")
+    decision = CandidateDecision(candidate_id="github:a/b", action="recommend", score=10, reason="r")
     out = render_briefing("2026-06-07", [(candidate, decision)])
     assert "What it does" not in out
 
@@ -82,7 +82,7 @@ def test_review_item_carries_audit_caveat():
 def test_mismatched_pair_raises():
     candidate = Candidate(id="github:a/b", name="a/b", url="u", source="s", summary="",
                           tags=[], kind="other", discovered_at="2026-06-07")
-    bad = CandidateDecision(candidate_id="github:x/y", action="save", score=1, reason="r")
+    bad = CandidateDecision(candidate_id="github:x/y", action="recommend", score=1, reason="r")
     with pytest.raises(ValueError):
         render_briefing("2026-06-07", [(candidate, bad)])
 

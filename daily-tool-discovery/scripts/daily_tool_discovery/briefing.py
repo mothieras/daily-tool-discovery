@@ -25,17 +25,15 @@ def render_briefing(
 ) -> str:
     _validate_pairs(selected)
     try_items = [(c, d) for c, d in selected if d.action == "try"]
-    save_items = [(c, d) for c, d in selected if d.action == "save"]
+    recommend_items = [(c, d) for c, d in selected if d.action == "recommend"]
     review_items = [(c, d) for c, d in selected if d.action == "review"]
     explore_items = [(c, d) for c, d in selected if d.action == "explore"]
-    ignore_items = [(c, d) for c, d in selected if d.action == "ignore"]
 
     lines = [f"# Daily Tool Discovery Briefing - {date}", ""]
     lines.extend(_render_section("Try Today", try_items, "No try-worthy item today.", include_trial=True))
-    lines.extend(_render_section("Save", save_items, "No saved items today.", include_trial=False))
+    lines.extend(_render_section("Recommended", recommend_items, "Nothing else to recommend today.", include_trial=False))
     lines.extend(_render_section("Review yourself", review_items, "No items need manual review today.", include_trial=False))
     lines.extend(_render_section("🎲 Explore", explore_items, "No exploration pick today.", include_trial=False))
-    lines.extend(_render_section("Ignore", ignore_items, "No explicit ignores today.", include_trial=False))
     lines.append(_filtered_line(filtered))
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"

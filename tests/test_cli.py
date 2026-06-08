@@ -83,7 +83,7 @@ def test_discover_promotes_trusted_and_quarantines_malware(tmp_path, monkeypatch
     briefing = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
     assert "## Try Today" in briefing
     assert "alice/good" in briefing
-    assert "BlueElephant42" not in briefing.split("## Save")[0]   # never a try
+    assert "BlueElephant42" not in briefing.split("## Recommended")[0]   # never a try
     assert "carol/tiny" in briefing.split("## Review yourself")[1].split("## 🎲 Explore")[0]
 
 

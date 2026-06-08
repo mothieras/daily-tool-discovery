@@ -46,7 +46,7 @@ def test_select_from_pool_try_then_save():
     second = _c("github:b/sec", stars=25, pushed_at="2026-05-01T00:00:00Z")
     sel = select_from_pool([second, top], today=TODAY, limit=3)
     assert sel[0][1].action == "try" and sel[0][0].id == "github:a/top"
-    assert sel[1][1].action == "save"
+    assert sel[1][1].action == "recommend"
 
 
 def test_reason_names_matched_tags():
@@ -65,7 +65,7 @@ def test_explore_picks_off_taste_trusted_candidate():
                                   try_save_limit=1, explore_slots=1)
     actions = {c.id: d.action for c, d in sel}
     assert actions["github:b/off"] == "explore"
-    assert actions["github:a/on"] in {"try", "save"}
+    assert actions["github:a/on"] in {"try", "recommend"}
 
 
 def test_explore_empty_when_no_off_taste():

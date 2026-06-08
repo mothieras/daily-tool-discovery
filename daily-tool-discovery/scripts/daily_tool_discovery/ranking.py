@@ -33,7 +33,7 @@ def rank_candidates(candidates: list[Candidate], today: date | None = None) -> l
 def select_from_pool(candidates, today=None, limit=3) -> list[tuple[Candidate, CandidateDecision]]:
     selected = []
     for index, ranked in enumerate(rank_candidates(candidates, today)[:limit]):
-        action = "try" if index == 0 and ranked.score >= TRY_SCORE_THRESHOLD else "save"
+        action = "try" if index == 0 and ranked.score >= TRY_SCORE_THRESHOLD else "recommend"
         selected.append((ranked.candidate, _decision(ranked, action)))
     return selected
 
@@ -46,7 +46,7 @@ def select_daily_candidates(
     review_limit: int = 3,
     explore_slots: int = 1,
 ) -> list[tuple[Candidate, CandidateDecision]]:
-    # Partition trusted: on-taste feeds try/save; off-taste feeds the explore slot.
+    # Partition trusted: on-taste feeds try/recommend; off-taste feeds the explore slot.
     on_taste = [c for c in trusted if c.metadata.get("taste_matched")]
     off_taste = [c for c in trusted if not c.metadata.get("taste_matched")]
     selected = list(select_from_pool(on_taste, today, try_save_limit))

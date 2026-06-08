@@ -45,7 +45,7 @@ collect (curated awesome-lists + GitHub search)
 
 A briefing has five sections:
 
-- **Try Today** / **Save** — trust-vetted picks that match your profile.
+- **Try Today** / **Recommended** — trust-vetted picks that match your profile (`save` is *your* action — bookmark one with the `save` command; the briefing never saves for you).
 - **Review yourself** — on-topic but low community signal; audit before running.
 - **🎲 Explore** — one deliberately off-profile, trust-vetted pick to break the filter bubble.
 - A footer reports how many suspicious candidates were filtered out.
