@@ -53,16 +53,21 @@ def _render_section(title, items, empty, include_trial):
 
     for candidate, decision in items:
         caveat = _inline_text(decision.caveat)
-        lines.extend(
+        item_lines = [
+            f"### {_inline_text(candidate.name)}",
+            f"- Link: {_inline_text(candidate.url)}",
+        ]
+        if candidate.summary:
+            item_lines.append(f"- What it does: {_inline_text(candidate.summary)}")
+        item_lines.extend(
             [
-                f"### {_inline_text(candidate.name)}",
-                f"- Link: {_inline_text(candidate.url)}",
                 f"- Type: {_inline_text(candidate.kind)}",
                 f"- Score: {decision.score}",
                 f"- Signals: {_metric_line(candidate)}",
                 f"- Why it matters: {_inline_text(decision.reason)}",
             ]
         )
+        lines.extend(item_lines)
         if include_trial:
             lines.append("- 15-minute trial: Open the project page, inspect install steps, and decide whether to schedule an installation separately.")
         if caveat:

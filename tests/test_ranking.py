@@ -49,6 +49,13 @@ def test_select_from_pool_try_then_save():
     assert sel[1][1].action == "save"
 
 
+def test_reason_names_matched_tags():
+    c = _c("github:a/x", relevance_points=16, matched_categories=["agent-dev"],
+           matched_tags=["agent", "mcp"], pushed_at="2026-06-01T00:00:00Z")
+    ranked = {r.candidate.id: r.reason for r in rank_candidates([c], TODAY)}
+    assert ranked["github:a/x"] == "Matches your 'agent-dev' interest (agent, mcp)."
+
+
 def test_explore_picks_off_taste_trusted_candidate():
     on = _c("github:a/on", stars=900, taste_matched=True, relevance_points=24,
             pushed_at="2026-06-01T00:00:00Z")

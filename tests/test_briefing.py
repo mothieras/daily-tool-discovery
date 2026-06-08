@@ -51,6 +51,20 @@ def test_filtered_line_caps_long_lists():
     assert "+3 more" in line
 
 
+def test_renders_repo_description():
+    selected = [_pair("github:a/try", "try", stars=900, owner_login="alice")]
+    out = render_briefing("2026-06-07", selected)
+    assert "- What it does: s" in out   # candidate.summary surfaced to the reader
+
+
+def test_omits_description_line_when_summary_empty():
+    candidate = Candidate(id="github:a/b", name="a/b", url="u", source="s", summary="",
+                          tags=[], kind="other", discovered_at="2026-06-07", metadata={})
+    decision = CandidateDecision(candidate_id="github:a/b", action="save", score=10, reason="r")
+    out = render_briefing("2026-06-07", [(candidate, decision)])
+    assert "What it does" not in out
+
+
 def test_metric_line_present_for_each_item():
     selected = [
         _pair("github:a/try", "try", stars=900, forks=100, open_issues=5,

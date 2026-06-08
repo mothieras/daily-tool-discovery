@@ -127,6 +127,9 @@ def _sort_key(item: RankedCandidate) -> tuple[int, int, int, str, str]:
 def _reason(candidate: Candidate) -> str:
     cats = candidate.metadata.get("matched_categories") or []
     if cats:
+        tags = candidate.metadata.get("matched_tags") or []
+        if tags:
+            return f"Matches your '{cats[0]}' interest ({', '.join(str(t) for t in tags[:4])})."
         return f"Matches your '{cats[0]}' interest."
     return "Trust-vetted; outside your usual interests."
 

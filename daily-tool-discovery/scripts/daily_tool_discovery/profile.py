@@ -127,11 +127,13 @@ def annotate_relevance(candidate: Candidate, profile: Profile) -> Candidate:
     rec = profile.recommend
     matched_points = 0
     matched_categories: list[str] = []
+    matched_tags: set[str] = set()
     for cat in profile.categories:
         matched = signals & {t.lower() for t in cat.signal_tags}
         if matched:
             matched_points += cat.weight * min(len(matched), rec.relevance_tags_per_category_cap) * rec.relevance_tag_points
             matched_categories.append(cat.name)
+            matched_tags |= matched
     if matched_categories:
         points = min(matched_points, rec.relevance_max_points)
     else:
@@ -142,6 +144,7 @@ def annotate_relevance(candidate: Candidate, profile: Profile) -> Candidate:
     return candidate.with_metadata(
         relevance_points=points,
         matched_categories=matched_categories,
+        matched_tags=sorted(matched_tags),
         taste_matched=bool(matched_categories),   # real tag match only -> Explore stays non-empty
     )
 

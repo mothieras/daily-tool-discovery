@@ -119,6 +119,7 @@ def test_annotate_relevance_pure_tags_weighted_and_capped():
     assert c.metadata["relevance_points"] == 16
     assert c.metadata["taste_matched"] is True
     assert "agents" in c.metadata["matched_categories"]
+    assert c.metadata["matched_tags"] == ["agent", "mcp"]   # which tags hit, for the briefing reason
 
 
 def test_annotate_relevance_provenance_is_floor_not_taste_match():
