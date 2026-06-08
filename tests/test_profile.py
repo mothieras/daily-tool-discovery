@@ -61,7 +61,8 @@ def test_load_profile_parses_categories_and_sources(tmp_path):
 def test_load_profile_trust_merge_precedence(tmp_path):
     prof = load_profile(_write(tmp_path))
     # toml overrides env/default; defaults fill the rest
-    assert prof.trust == TrustConfig(min_stars=25, novelty_days=14, new_repo_days=30, stale_months=12)
+    assert prof.trust == TrustConfig(min_stars=25, novelty_days=14, new_repo_days=30,
+                                     active_days=62, established_stars=500, established_days=150)
 
 
 def test_load_profile_cli_overrides_toml(tmp_path):

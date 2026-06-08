@@ -9,7 +9,9 @@ class TrustConfig:
     min_stars: int = 20
     novelty_days: int = 30
     new_repo_days: int = 30
-    stale_months: int = 12
+    active_days: int = 62           # repos below `established_stars` must be pushed within this (~2 months)
+    established_stars: int = 500    # at/above this many stars, the relaxed window applies
+    established_days: int = 150     # established repos may be this stale and still count as active (~5 months)
 
 
 def _int_env(env: dict[str, str], key: str, default: int) -> int:
@@ -35,5 +37,7 @@ def load_config(
         novelty_days=novelty_days if novelty_days is not None
         else _int_env(env, "DAILY_TOOL_DISCOVERY_NOVELTY_DAYS", 30),
         new_repo_days=_int_env(env, "DAILY_TOOL_DISCOVERY_NEW_REPO_DAYS", 30),
-        stale_months=_int_env(env, "DAILY_TOOL_DISCOVERY_STALE_MONTHS", 12),
+        active_days=_int_env(env, "DAILY_TOOL_DISCOVERY_ACTIVE_DAYS", 62),
+        established_stars=_int_env(env, "DAILY_TOOL_DISCOVERY_ESTABLISHED_STARS", 500),
+        established_days=_int_env(env, "DAILY_TOOL_DISCOVERY_ESTABLISHED_DAYS", 150),
     )

@@ -78,7 +78,9 @@ signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-fi
 min_stars = 20
 novelty_days = 30
 new_repo_days = 30
-stale_months = 12
+active_days = 62          # repos below established_stars: drop to Review if not pushed within this (~2 months)
+established_stars = 500   # at/above this many stars, the relaxed window applies
+established_days = 150    # established repos may be this stale and still count as active (~5 months)
 
 [recommend]
 taste_max_points = 12

@@ -59,11 +59,17 @@ def assess_trust(candidate: Candidate, today: date, config: TrustConfig) -> Trus
     if is_fork:
         flags.append("fork")
 
+    # Active = pushed recently, with a tier by stars: small repos must be fresh
+    # (a quiet month reads as abandoned), established repos get a longer window.
+    active_window = config.established_days if stars >= config.established_stars else config.active_days
+    active = pushed_days is not None and pushed_days <= active_window
+    if pushed_days is not None and not active:
+        flags.append("stale")
+
     if auto and brand_new and no_community:
         return TrustAssessment("reject", tuple(flags))
 
-    maintained = pushed_days is not None and pushed_days <= config.stale_months * 31
-    if stars >= config.min_stars and not archived and maintained:
+    if stars >= config.min_stars and not archived and active:
         return TrustAssessment("trusted", tuple(flags))
 
     return TrustAssessment("review", tuple(flags))

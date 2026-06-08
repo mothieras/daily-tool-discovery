@@ -83,7 +83,9 @@ def _build_trust(tbl: dict, *, min_stars: int | None, novelty_days: int | None) 
         min_stars=min_stars if min_stars is not None else int(tbl.get("min_stars", base.min_stars)),
         novelty_days=novelty_days if novelty_days is not None else int(tbl.get("novelty_days", base.novelty_days)),
         new_repo_days=int(tbl.get("new_repo_days", base.new_repo_days)),
-        stale_months=int(tbl.get("stale_months", base.stale_months)),
+        active_days=int(tbl.get("active_days", base.active_days)),
+        established_stars=int(tbl.get("established_stars", base.established_stars)),
+        established_days=int(tbl.get("established_days", base.established_days)),
     )
 
 
