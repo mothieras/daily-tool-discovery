@@ -52,6 +52,12 @@ signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-fi
   [[category.source]]
   name = "awesome-mac"
   url = "https://raw.githubusercontent.com/jaywcjlove/awesome-mac/master/README.md"
+  [[category.source]]
+  name = "awesome-rust"
+  url = "https://raw.githubusercontent.com/rust-unofficial/awesome-rust/main/README.md"
+  [[category.source]]
+  name = "awesome-go"
+  url = "https://raw.githubusercontent.com/avelino/awesome-go/main/README.md"
 
   [[category.search]]
   name = "fresh-local-first-tools"
@@ -60,7 +66,7 @@ signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-fi
   min_stars = 30
   [[category.search]]
   name = "maintained-cli-tools"
-  query = "topic:cli pushed:>2026-03-01"
+  query = "topic:cli pushed:>2026-04-01"
   per_page = 10
   min_stars = 100
   [[category.search]]
@@ -70,17 +76,27 @@ signal_tags = ["cli", "tui", "tauri", "macos", "obsidian", "markdown", "local-fi
   min_stars = 100
   [[category.search]]
   name = "maintained-mac-tools"
-  query = "topic:macos pushed:>2026-03-01"
+  query = "topic:macos pushed:>2026-04-01"
   per_page = 10
   min_stars = 100
+  [[category.search]]
+  name = "fresh-rust-tui"
+  query = "topic:ratatui created:>2026-01-01"
+  per_page = 5
+  min_stars = 30
+  [[category.search]]
+  name = "fresh-dev-productivity"
+  query = "topic:developer-tools topic:productivity pushed:>2026-03-01"
+  per_page = 5
+  min_stars = 50
 
 [trust]
 min_stars = 20
 novelty_days = 30
 new_repo_days = 30
-active_days = 62          # repos below established_stars: drop to Review if not pushed within this (~2 months)
-established_stars = 500   # at/above this many stars, the relaxed window applies
-established_days = 150    # established repos may be this stale and still count as active (~5 months)
+active_days = 62          # < established_stars 的仓：超过这么多天没更新就降到 Review（约 2 个月）
+established_stars = 500   # 达到这个星数算"成熟仓"，活跃窗口放宽
+established_days = 150    # 成熟仓允许这么多天没更新仍算活跃（约 5 个月）
 
 [recommend]
 taste_max_points = 12
@@ -93,7 +109,4 @@ taste_points_per_tag = 6
 explore_slots = 1
 
 [lists]
-# Static, version-controlled denies. Unioned at load time with the dynamic
-# `denylist.txt` that the `deny` command appends to — editing either file takes
-# effect on the next run; you never need to keep the two in sync.
 deny = []

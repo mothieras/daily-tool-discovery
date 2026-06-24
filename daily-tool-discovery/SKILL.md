@@ -35,16 +35,30 @@ Trust signals are first-class — judge by them before relevance:
 2. Maintenance: recent pushes; not archived.
 3. Publisher credibility: real account with history/followers; org > brand-new lone user.
    Auto-generated usernames + 0 stars/forks + hollow README = spam/malware; never recommend.
-4. Activity: open issues/PRs show real usage.
-5. Relevance = how well the project matches the **active profile's** interests. Relevance
+4. Activity: open issues/PRs show real usage. **High stars + 0 issues + few forks =
+   astroturf signal** — the pipeline flags this and forces the repo to Review, never trusted.
+5. Anti-astroturf: `astroturf-silent` (high stars, 0 issues, ≤5 forks) and `inflated-stars`
+   (forks-to-stars ratio worse than 1:50) are detected automatically. Flagged repos get
+   score penalties and visible caveats in the briefing.
+6. Relevance = how well the project matches the **active profile's** interests. Relevance
    chooses among trusted candidates; it never overrides the trust floor.
+
+**Scoring weights (v0.3):** stars 20pts (was 30), forks 8pts, issues 8pts (was 3, with
+−4 penalty for 100+★ repos with 0 issues), freshness 8pts, relevance 24pts, taste 12pts.
+Astroturf-silent −15, inflated-stars −8. The rebalance means a 3000★ repo with 0 issues
+scores *lower* than a 200★ repo with 15 issues — by design.
 
 ## How to operate (config only — never edit code)
 
 **`GITHUB_TOKEN` is required — set it first.** It must be in the environment (or in
 `~/.hermes/.env`, which the cron wrapper sources) before discovery runs. Without it GitHub
-returns 403 and every curated source comes back empty — the whole run is wasted. Verify it
-before anything else. Token issues → see `references/troubleshooting.md`.
+returns 403 and every curated source comes back empty — the whole run is wasted.
+
+As of v0.3, the CLI validates the token at startup via the `/rate_limit` endpoint. If the
+token is missing, invalid (rate limit ≤60 = unauthenticated), or core quota is exhausted
+(<10 remaining), `run.py` exits with code 78 (EX_CONFIG) and a clear stderr message — no
+garbage briefing is produced. The cron script also checks for an empty/missing briefing
+file and exits non-zero with a diagnostic. Token issues → see `references/troubleshooting.md`.
 
 Run the bundled entry point — it is self-contained (no install needed):
 
