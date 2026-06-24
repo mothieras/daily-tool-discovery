@@ -33,11 +33,11 @@ def _days_since(value: object, today: date) -> int | None:
         return None
     return (today - parsed).days
 
-
 def assess_trust(candidate: Candidate, today: date, config: TrustConfig) -> TrustAssessment:
     md = candidate.metadata
     stars = int(md.get("stars") or 0)
     forks = int(md.get("forks") or 0)
+    issues = int(md.get("open_issues") or 0)
     archived = bool(md.get("archived"))
     is_fork = bool(md.get("is_fork"))
     login = str(md.get("owner_login") or "")
@@ -59,6 +59,21 @@ def assess_trust(candidate: Candidate, today: date, config: TrustConfig) -> Trus
     if is_fork:
         flags.append("fork")
 
+    # --- Anti-astroturf: high stars but zero community interaction ---
+    # In 2026's AI-agent ecosystem, repos with 500+ stars but 0 open issues/PRs
+    # AND very few forks are a strong spam/marketing signal — real popular
+    # projects always have issues. But a repo with 800★ and 100 forks is legit
+    # even if issues happen to be 0 (some projects use discussions instead).
+    if stars >= 500 and issues == 0 and forks < 10:
+        flags.append("astroturf-silent")
+    if stars >= 100 and issues == 0 and forks <= 5:
+        flags.append("astroturf-silent")
+
+    # Forks-to-stars ratio: real projects have ~1 fork per 10-20 stars.
+    # A ratio below 1:50 (e.g. 2000★ 20 forks) suggests inflated stars.
+    if stars >= 200 and forks > 0 and stars / forks > 50:
+        flags.append("inflated-stars")
+
     # Active = pushed recently, with a tier by stars: small repos must be fresh
     # (a quiet month reads as abandoned), established repos get a longer window.
     active_window = config.established_days if stars >= config.established_stars else config.active_days
@@ -68,6 +83,10 @@ def assess_trust(candidate: Candidate, today: date, config: TrustConfig) -> Trus
 
     if auto and brand_new and no_community:
         return TrustAssessment("reject", tuple(flags))
+
+    # Astroturf-silent repos are never trusted — force to review even if stars are high
+    if "astroturf-silent" in flags and not archived:
+        return TrustAssessment("review", tuple(flags))
 
     if stars >= config.min_stars and not archived and active:
         return TrustAssessment("trusted", tuple(flags))

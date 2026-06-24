@@ -69,25 +69,40 @@ def _score(candidate: Candidate, today: date | None = None) -> int:
     stars = int(md.get("stars") or 0)
     forks = int(md.get("forks") or 0)
     issues = int(md.get("open_issues") or 0)
+    risk_flags = md.get("risk_flags") or []
     score = 0
 
+    # --- Stars (reduced from 30 max to 20 max) ---
+    # Stars are a floor, not a crown. In 2026's agent ecosystem, stars are
+    # cheap to inflate; real signal comes from activity + community interaction.
     if stars >= 3000:
-        score += 30
+        score += 20
     elif stars >= 500:
-        score += 24
+        score += 16
     elif stars >= 100:
-        score += 18
+        score += 12
     elif stars >= 20:
-        score += 10
+        score += 8
 
+    # --- Forks (unchanged, capped at 8) ---
     if forks >= 200:
         score += 8
     elif forks >= 20:
         score += 4
 
-    if issues >= 10:
-        score += 3
+    # --- Issues/PRs: proof of real community engagement ---
+    # This is the key anti-astroturf signal. A project with 1000★ and 0 issues
+    # is suspicious; one with 200★ and 15 issues is clearly alive.
+    if issues >= 50:
+        score += 8
+    elif issues >= 10:
+        score += 6
+    elif issues >= 3:
+        score += 4
+    elif issues == 0 and stars >= 100:
+        score -= 4  # silent community penalty
 
+    # --- Freshness (unchanged) ---
     if today is not None:
         days = _days_since(md.get("pushed_at"), today)
         if days is not None and stars >= 20:
@@ -100,15 +115,23 @@ def _score(candidate: Candidate, today: date | None = None) -> int:
         elif days is not None and days > 730:
             score -= 6
 
+    # --- Relevance + taste (unchanged) ---
     score += int(md.get("relevance_points") or 0)   # profile relevance (capped at annotation)
     score += int(md.get("taste_points") or 0)        # learned taste (capped at annotation)
 
+    # --- Bonuses (unchanged) ---
     if md.get("manual_seed"):
         score += 35
     if md.get("owner_type") == "Organization":
         score += 4
     if md.get("publisher_trusted"):
         score += 4
+
+    # --- Anti-astroturf penalties ---
+    if "astroturf-silent" in risk_flags:
+        score -= 15
+    if "inflated-stars" in risk_flags:
+        score -= 8
 
     return max(min(score, 100), 0)
 
@@ -139,6 +162,10 @@ def _caveat(candidate: Candidate, action: str) -> str:
         flags = candidate.metadata.get("risk_flags") or []
         if "archived" in flags:
             return "Archived — no longer maintained; audit before relying on it."
+        if "astroturf-silent" in flags:
+            return "High stars but zero issues/PRs — possible inflated popularity; verify before trusting."
+        if "inflated-stars" in flags:
+            return "Forks-to-stars ratio is unusually low — stars may be inflated; verify before trusting."
         if "stale" in flags:
             return "Not updated recently — verify it's still maintained before relying on it."
         return "Low community signal — audit before running; do not run blindly."

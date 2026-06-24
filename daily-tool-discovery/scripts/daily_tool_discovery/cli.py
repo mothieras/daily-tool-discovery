@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from datetime import date as date_type
 from pathlib import Path
 from typing import Any, Iterable
@@ -27,8 +28,43 @@ from daily_tool_discovery.seeds import load_manual_seeds
 from daily_tool_discovery.trust import annotate_trust, assess_trust, publisher_is_suspicious
 
 
+class TokenError(Exception):
+    """Raised when GITHUB_TOKEN is missing, invalid, or rate-limited."""
+
+
 def _make_github_client() -> GitHubClient:
-    return GitHubClient(token=os.environ.get("GITHUB_TOKEN"))
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise TokenError(
+            "GITHUB_TOKEN is not set. Without it, curated sources return 403 and "
+            "the entire run produces garbage. Set it in ~/.hermes/.env or the environment."
+        )
+    client = GitHubClient(token=token)
+    _verify_token_usable(client)
+    return client
+
+
+def _verify_token_usable(client: GitHubClient) -> None:
+    """Check that the token works and has core rate limit remaining."""
+    try:
+        payload = client.get_rate_limit()
+    except Exception as exc:
+        raise TokenError(f"GitHub rate_limit check failed: {exc}") from exc
+    core = payload.get("resources", {}).get("core", {})
+    remaining = int(core.get("remaining") or 0)
+    limit = int(core.get("limit") or 0)
+    # limit=60 means unauthenticated — token not recognized
+    if limit <= 60:
+        raise TokenError(
+            f"GitHub token appears invalid (rate limit={limit}, expected 5000). "
+            "The API is treating requests as unauthenticated. Check if the token expired."
+        )
+    if remaining < 10:
+        reset = core.get("reset")
+        raise TokenError(
+            f"GitHub core rate limit nearly exhausted ({remaining}/{limit} remaining). "
+            f"Reset at epoch {reset}. Skipping this run rather than producing garbage."
+        )
 
 
 def run_dry_run(root: Path, date: str | None = None) -> None:
@@ -284,6 +320,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             parser.error(f"Unknown command: {args.command}")
             return 2
+    except TokenError as exc:
+        print(f"ERROR [token]: {exc}", file=sys.stderr)
+        return 78  # EX_CONFIG: configuration error
     except (FileNotFoundError, ValueError) as exc:
         parser.error(str(exc))
     return 0

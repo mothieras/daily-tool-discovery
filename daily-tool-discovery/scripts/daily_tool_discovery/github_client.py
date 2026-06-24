@@ -79,6 +79,15 @@ class GitHubClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return self.transport.get_json(f"https://api.github.com/users/{login}", headers)
 
+    def get_rate_limit(self) -> dict[str, Any]:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "daily-tool-discovery",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return self.transport.get_json("https://api.github.com/rate_limit", headers)
+
 
 def candidate_from_github_payload(
     item: dict[str, Any],

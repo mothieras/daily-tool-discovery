@@ -121,3 +121,60 @@ def test_publisher_not_suspicious_established_account():
 def test_publisher_not_suspicious_when_has_followers():
     user = {"created_at": "2026-06-01T00:00:00Z", "public_repos": 1, "followers": 5}
     assert publisher_is_suspicious(user, TODAY, CFG) is False
+
+
+def test_astroturf_silent_high_stars_zero_issues_low_forks_is_review():
+    """High stars + 0 issues + very few forks = astroturf, never trusted."""
+    c = _candidate(
+        stars=1269, forks=3, open_issues=0,
+        created_at="2026-05-01T00:00:00Z",
+        pushed_at="2026-06-05T00:00:00Z", owner_login="someuser",
+    )
+    assessment = assess_trust(c, TODAY, CFG)
+    assert assessment.tier == "review"
+    assert "astroturf-silent" in assessment.risk_flags
+
+
+def test_astroturf_silent_500_plus_stars_zero_issues_zero_forks():
+    """500+ stars with 0 issues and <10 forks is astroturf even if active."""
+    c = _candidate(
+        stars=800, forks=5, open_issues=0,
+        created_at="2024-01-01T00:00:00Z",
+        pushed_at="2026-06-01T00:00:00Z", owner_login="someorg",
+    )
+    assessment = assess_trust(c, TODAY, CFG)
+    assert assessment.tier == "review"
+    assert "astroturf-silent" in assessment.risk_flags
+
+
+def test_high_stars_with_real_forks_not_astroturf():
+    """800 stars + 100 forks + 0 issues is NOT astroturf (forks show real engagement)."""
+    c = _candidate(
+        stars=800, forks=100, open_issues=0,
+        created_at="2022-01-01T00:00:00Z",
+        pushed_at="2026-03-09T00:00:00Z", owner_login="alice",
+    )
+    assessment = assess_trust(c, TODAY, CFG)
+    assert "astroturf-silent" not in assessment.risk_flags
+
+
+def test_inflated_stars_flagged_when_fork_ratio_extreme():
+    """2000 stars + 20 forks (1:100 ratio) is suspicious."""
+    c = _candidate(
+        stars=2000, forks=20, open_issues=15,
+        created_at="2024-01-01T00:00:00Z",
+        pushed_at="2026-06-01T00:00:00Z", owner_login="alice",
+    )
+    assessment = assess_trust(c, TODAY, CFG)
+    assert "inflated-stars" in assessment.risk_flags
+
+
+def test_normal_fork_ratio_not_flagged():
+    """500 stars + 50 forks (1:10 ratio) is normal."""
+    c = _candidate(
+        stars=500, forks=50, open_issues=20,
+        created_at="2024-01-01T00:00:00Z",
+        pushed_at="2026-06-01T00:00:00Z", owner_login="alice",
+    )
+    assessment = assess_trust(c, TODAY, CFG)
+    assert "inflated-stars" not in assessment.risk_flags
