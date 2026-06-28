@@ -1,7 +1,7 @@
 ---
 name: daily-tool-discovery
-description: "Use when reviewing or generating the Daily Tool Discovery briefing — runs the bundled pipeline to surface trust-vetted dev/CLI/MCP tools and select try/recommend items."
-version: 0.2.0
+description: "Use when reviewing or generating the Daily Tool Discovery briefing — runs the bundled pipeline to surface trust-vetted dev/CLI/MCP tools, with a `browse` subcommand for raw GitHub Trending inspection (daily/weekly/new/fast-growing)."
+version: 0.3.0
 author: Mothieras
 license: MIT
 metadata:
@@ -100,6 +100,39 @@ Buckets: **Try Today** (trust-vetted, on-profile) / **Recommended** / **Review y
 command (see below), never automatic. The 🎲 Explore pick is
 deliberately outside the profile — **do not dismiss it for being off-profile; it exists to
 break the filter bubble.**
+
+## Browse trending (raw inspection)
+
+The scheduled `discover` produces a curated briefing (trust tier, ranking, LLM
+summaries). The `browse` subcommand is the **other path** — raw, read-only, no
+trust tier, no ranking, no LLM, no state writes. Use it when an agent or a
+human wants to *see* what GitHub is showing right now without waiting for the
+next daily briefing.
+
+```
+python3 scripts/run.py browse
+python3 scripts/run.py browse --source daily --limit 10
+python3 scripts/run.py browse --source new --language python --since 7d
+```
+
+`--source` is one of `daily | weekly | new | fast-growing | all` (default `all`).
+`--language` narrows the daily/weekly scrape to a single language slug.
+`--since` is a lookback for the search-backed sources: `7d`, `2w`, or `14`.
+
+Output is a Markdown snapshot grouped by source. Each item carries the trend
+signal (stars today, weekly growth, or the `recently pushed` proxy label) and
+the same `min_stars` floor as the briefing — so what you see in `browse` and
+what shows up in the daily pool use a comparable filter.
+
+**Don't conflate the two paths.** `discover` is the scheduled curation
+(writes a file, applies trust tier, can save to history). `browse` is
+inspection. If you're an agent asked "what's hot on GitHub right now",
+`browse` is the right command. If you're asked "what should I use today",
+that's a briefing question.
+
+The four sources and their signals are documented in
+`references/trending-sources.md` — read that before changing any scrape
+regexes or adding a new source.
 
 ## Output
 
