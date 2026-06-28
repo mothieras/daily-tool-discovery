@@ -93,6 +93,7 @@ def run_discover(
     limit: int = 80,
     min_stars: int | None = None,
     novelty_days: int | None = None,
+    text_transport=None,
 ) -> None:
     current_date = _normalize_date(date)
     today = date_type.fromisoformat(current_date)
@@ -111,7 +112,7 @@ def run_discover(
     candidates.extend(
         discover_github_search_candidates(all_searches, discovered_at=current_date, limit=github_quota, github_client=github)
     )
-    candidates.extend(_trending_candidates(github, current_date, profile))
+    candidates.extend(_trending_candidates(github, current_date, profile, text_transport))
 
     taste_seeds = _load_optional_manual_seeds(root, current_date)
     candidates = _dedupe_candidates(candidates)
@@ -183,12 +184,20 @@ def run_browse(
     return text
 
 
-def _trending_candidates(github, discovered_at, profile) -> list[Candidate]:
-    """Trending pool for the daily briefing — bounded and non-fatal.
+def _trending_candidates(github, discovered_at, profile, text_transport=None) -> list[Candidate]:
+    """Trending pool for the daily briefing — opt-in, bounded, and non-fatal.
 
-    A trending failure (HTML layout change, GitHub 5xx) must not sink the run,
-    so it degrades to an empty list and the other sources carry the briefing.
+    Off by default: trending only runs when the active profile enables it
+    (``[trending]`` with ``enabled = true``). When disabled the source is
+    skipped entirely — no scrape, no GitHub calls, no WARN lines.
+
+    When enabled, a trending failure (HTML layout change, GitHub 5xx) must not
+    sink the run, so it degrades to an empty list and the other sources carry
+    the briefing. ``text_transport`` is injectable for tests; ``None`` uses the
+    live transport.
     """
+    if not profile.trending_enabled:
+        return []
     try:
         return discover_trending_candidates(
             github,
@@ -198,6 +207,7 @@ def _trending_candidates(github, discovered_at, profile) -> list[Candidate]:
             new_repos_limit=10,
             fast_growing_limit=10,
             min_stars=profile.trust.min_stars,
+            text_transport=text_transport,
         )
     except Exception as exc:
         print(f"WARN [trending]: skipped trending sources: {exc}", file=sys.stderr)

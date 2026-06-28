@@ -86,7 +86,15 @@ def discover_trending_candidates(
             if candidate.id.lower() in by_id:
                 continue
             if source in ("daily", "weekly"):
-                candidate = _enrich(candidate, github_client, discovered_at)
+                enriched = _enrich(candidate, github_client, discovered_at)
+                if enriched is None:
+                    print(
+                        f"WARN [trending]: dropped {candidate.name} — enrichment failed "
+                        "(no live metadata for the trust tier)",
+                        file=sys.stderr,
+                    )
+                    continue
+                candidate = enriched
             by_id[candidate.id.lower()] = candidate
     return list(by_id.values())
 
@@ -248,11 +256,13 @@ def _search_fast_growing(
 # --- enrichment + helpers ---------------------------------------------------
 
 
-def _enrich(candidate: Candidate, github_client: GitHubClient, discovered_at: str) -> Candidate:
+def _enrich(candidate: Candidate, github_client: GitHubClient, discovered_at: str) -> Candidate | None:
     """Backfill live repo metadata for a scraped repo, keeping the trend signal.
 
-    On failure, degrade gracefully to the scraped candidate (same contract as
-    the curated source's metadata fallback) rather than dropping the repo.
+    On failure, return ``None`` so the caller drops the repo. A scraped-only
+    Candidate has no created/pushed/forks/owner, so the trust tier would compute
+    "unknown" everywhere and the repo would land in the briefing with junk
+    metadata — a worse signal than no Candidate at all.
     """
     overlay = {k: candidate.metadata[k] for k in _TRENDING_META_KEYS if k in candidate.metadata}
     try:
@@ -263,7 +273,7 @@ def _enrich(candidate: Candidate, github_client: GitHubClient, discovered_at: st
             source=candidate.source,
         )
     except Exception:
-        return candidate
+        return None
     return enriched.with_metadata(**overlay)
 
 

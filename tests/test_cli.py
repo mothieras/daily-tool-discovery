@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from daily_tool_discovery import cli
+from daily_tool_discovery import cli, trending
 from daily_tool_discovery.models import Candidate
 
 PROFILE = """
@@ -38,9 +38,11 @@ class _StubGitHub:
             "alice": {"created_at": "2015-01-01T00:00:00Z", "public_repos": 50, "followers": 300},
             "carol": {"created_at": "2020-01-01T00:00:00Z", "public_repos": 12, "followers": 40},
             "frank": {"created_at": "2014-01-01T00:00:00Z", "public_repos": 80, "followers": 900},
+            "trend": {"created_at": "2016-01-01T00:00:00Z", "public_repos": 40, "followers": 500},
         }
 
-    def search_repositories(self, query, discovered_at, kind, per_page=10, min_stars=0):
+    def search_repositories(self, query, discovered_at, kind, per_page=10, min_stars=0,
+                            sort="updated", order="desc"):
         return [
             Candidate(id="github:alice/good", name="alice/good", url="https://github.com/alice/good",
                       source="github", summary="great mcp tool", tags=["mcp", "agent"], kind=kind,
@@ -70,6 +72,17 @@ class _StubGitHub:
 
     def get_user(self, login):
         return self.users.get(login, {"created_at": "2026-06-01T00:00:00Z", "public_repos": 1, "followers": 0})
+
+    def get_repository(self, full_name, discovered_at, kind, source):
+        """Enrich a scraped trending repo with full, trust-passing metadata."""
+        owner = full_name.split("/")[0]
+        return Candidate(
+            id=f"github:{full_name}", name=full_name, url=f"https://github.com/{full_name}",
+            source=source, summary="enriched trending tool", tags=["mcp"], kind=kind,
+            discovered_at=discovered_at,
+            metadata={"stars": 600, "forks": 80, "open_issues": 5,
+                      "created_at": "2024-01-01T00:00:00Z", "pushed_at": "2026-06-01T00:00:00Z",
+                      "owner_login": owner, "owner_type": "User", "archived": False, "is_fork": False})
 
 
 def _run(root, monkeypatch, date_str="2026-06-07"):
@@ -148,3 +161,74 @@ def test_feedback_and_save_cli(tmp_path):
     assert cli.main(["deny", "--root", str(tmp_path), "--pattern", "a/b"]) == 0
     assert (tmp_path / "feedback.jsonl").exists()
     assert "a/b" in (tmp_path / "denylist.txt").read_text(encoding="utf-8")
+
+
+# --- trending opt-in (default off) ------------------------------------------
+
+TRENDING_PROFILE = PROFILE + "\n[trending]\nenabled = true\n"
+
+
+def _trending_article(full_name, stars):
+    owner, repo = full_name.split("/")
+    return (
+        '<article class="Box-row">'
+        f'<h2 class="h3"><a href="/{full_name}">{owner} / {repo}</a></h2>'
+        f'<a href="/{full_name}/stargazers"><svg height="16" width="16"></svg> {stars:,} </a>'
+        "</article>"
+    )
+
+
+def _trending_page(*articles):
+    return '<html><body><div class="Box">' + "".join(articles) + "</div></body></html>"
+
+
+class _RecordingTransport:
+    def __init__(self, html):
+        self.html = html
+        self.urls = []
+
+    def get_text(self, url):
+        self.urls.append(url)
+        return self.html
+
+
+class _ExplodingTransport:
+    def get_text(self, url):
+        raise AssertionError(f"trending scraped while disabled: {url}")
+
+
+class _NoLiveTransport:
+    """Sentinel for the live transport — blows up if anyone constructs it."""
+
+    def __init__(self):
+        raise AssertionError("live UrllibTextTransport constructed — text_transport injection failed")
+
+
+def test_discover_trending_disabled_by_default_is_silent(tmp_path, monkeypatch, capsys):
+    _write_profile(tmp_path)  # default profile: no [trending] section -> off
+    monkeypatch.setattr(cli, "_make_github_client", lambda: _StubGitHub())
+    monkeypatch.setattr(trending, "UrllibTextTransport", _NoLiveTransport)
+
+    # If the disabled path scraped at all, the exploding transport would raise.
+    cli.run_discover(root=tmp_path, date="2026-06-07", text_transport=_ExplodingTransport())
+
+    assert "WARN [trending]" not in capsys.readouterr().err  # the off path is silent
+    briefing = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
+    assert "## Try Today" in briefing  # other sources still carry the briefing
+
+
+def test_discover_trending_enabled_uses_injected_transport(tmp_path, monkeypatch, capsys):
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "profile.toml").write_text(TRENDING_PROFILE, encoding="utf-8")
+    transport = _RecordingTransport(_trending_page(_trending_article("trend/cool", 300)))
+    monkeypatch.setattr(cli, "_make_github_client", lambda: _StubGitHub())
+    # Constructing the live transport raises -> proves no live github.com/trending call.
+    monkeypatch.setattr(trending, "UrllibTextTransport", _NoLiveTransport)
+
+    cli.run_discover(root=tmp_path, date="2026-06-07", text_transport=transport)
+    capsys.readouterr()
+
+    assert transport.urls  # the injected (fake) transport served the scrape
+    assert all("github.com/trending" in u for u in transport.urls)
+    briefing = (tmp_path / "briefings" / "2026-06-07.md").read_text(encoding="utf-8")
+    assert "trend/cool" in briefing  # the fixture's repo flowed into the briefing

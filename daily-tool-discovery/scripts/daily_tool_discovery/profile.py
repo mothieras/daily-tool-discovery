@@ -41,6 +41,7 @@ class Profile:
     trust: TrustConfig
     recommend: RecommendConfig
     deny: tuple[str, ...]
+    trending_enabled: bool = False
 
 
 def resolve_profile_path(root: Path, profile_path: Path | None = None) -> Path:
@@ -74,7 +75,11 @@ def load_profile(path: Path, *, min_stars: int | None = None, novelty_days: int 
     rec = _build_recommend(payload.get("recommend", {}))
     deny = tuple(str(p) for p in payload.get("lists", {}).get("deny", []))
     name = str(payload.get("meta", {}).get("name", path.stem))
-    return Profile(name=name, categories=tuple(categories), trust=trust, recommend=rec, deny=deny)
+    trending_enabled = bool(payload.get("trending", {}).get("enabled", False))
+    return Profile(
+        name=name, categories=tuple(categories), trust=trust, recommend=rec,
+        deny=deny, trending_enabled=trending_enabled,
+    )
 
 
 def _build_trust(tbl: dict, *, min_stars: int | None, novelty_days: int | None) -> TrustConfig:
