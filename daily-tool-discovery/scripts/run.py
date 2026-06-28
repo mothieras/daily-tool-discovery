@@ -13,7 +13,7 @@ sys.path.insert(0, str(SCRIPTS))                 # so `import daily_tool_discove
 from daily_tool_discovery.bootstrap import default_data_root, ensure_data_root
 from daily_tool_discovery.cli import main
 
-_ROOTED = {"discover", "dry-run", "feedback", "save", "deny"}
+_ROOTED = {"discover", "dry-run", "feedback", "save", "deny", "browse"}
 
 
 def _run() -> int:

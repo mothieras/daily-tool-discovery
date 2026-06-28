@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date as date_type
 from pathlib import Path
@@ -25,6 +26,12 @@ from daily_tool_discovery.profile import (
 )
 from daily_tool_discovery.ranking import select_daily_candidates, select_from_pool
 from daily_tool_discovery.seeds import load_manual_seeds
+from daily_tool_discovery.trending import (
+    TRENDING_SOURCES,
+    discover_trending_candidates,
+    gather_trending,
+    render_browse_markdown,
+)
 from daily_tool_discovery.trust import annotate_trust, assess_trust, publisher_is_suspicious
 
 
@@ -104,6 +111,7 @@ def run_discover(
     candidates.extend(
         discover_github_search_candidates(all_searches, discovered_at=current_date, limit=github_quota, github_client=github)
     )
+    candidates.extend(_trending_candidates(github, current_date, profile))
 
     taste_seeds = _load_optional_manual_seeds(root, current_date)
     candidates = _dedupe_candidates(candidates)
@@ -140,6 +148,81 @@ def run_discover(
                                        explore_slots=profile.recommend.explore_slots)
     _write_briefing(root, current_date, selected, filtered=filtered)
     record_surfaced(root / "history.jsonl", current_date, selected)
+
+
+def run_browse(
+    root: Path,
+    *,
+    source: str = "all",
+    limit: int = 20,
+    language: str | None = None,
+    since: str | None = None,
+    min_stars: int | None = None,
+    date: str | None = None,
+) -> str:
+    """Raw, read-only Markdown snapshot of GitHub Trending.
+
+    No trust tier, ranking, LLM, or briefing; no state is written. Requires a
+    usable GITHUB_TOKEN (same TokenError / exit 78 as `discover`).
+    """
+    discovered_at = _normalize_date(date)
+    github = _make_github_client()
+    want = TRENDING_SOURCES if source == "all" else (source,)
+    floor = _browse_floor(root, min_stars)
+    grouped = gather_trending(
+        github,
+        discovered_at,
+        want=want,
+        limits={s: limit for s in want},
+        min_stars=floor,
+        language=language,
+        since_days=_parse_since(since),
+    )
+    text = render_browse_markdown(discovered_at, grouped, order=want, min_stars=floor)
+    print(text, end="")
+    return text
+
+
+def _trending_candidates(github, discovered_at, profile) -> list[Candidate]:
+    """Trending pool for the daily briefing — bounded and non-fatal.
+
+    A trending failure (HTML layout change, GitHub 5xx) must not sink the run,
+    so it degrades to an empty list and the other sources carry the briefing.
+    """
+    try:
+        return discover_trending_candidates(
+            github,
+            discovered_at,
+            daily_limit=10,
+            weekly_limit=10,
+            new_repos_limit=10,
+            fast_growing_limit=10,
+            min_stars=profile.trust.min_stars,
+        )
+    except Exception as exc:
+        print(f"WARN [trending]: skipped trending sources: {exc}", file=sys.stderr)
+        return []
+
+
+def _browse_floor(root: Path, override: int | None) -> int:
+    if override is not None:
+        return override
+    try:
+        return load_profile(resolve_profile_path(root)).trust.min_stars
+    except Exception:
+        return 50  # read-only default when no profile/state is present
+
+
+def _parse_since(value: str | None) -> int | None:
+    """Parse a lookback like '7d' / '2w' / '14' into days; None if unset/invalid."""
+    if not value:
+        return None
+    raw = value.strip().lower()
+    match = re.fullmatch(r"(\d+)\s*([dw]?)", raw)
+    if not match:
+        return None
+    amount = int(match.group(1))
+    return amount * 7 if match.group(2) == "w" else amount
 
 
 def run_feedback(root: Path, date: str, candidate_id: str, verdict: str, value: str, note: str = "") -> None:
@@ -278,6 +361,15 @@ def build_parser() -> argparse.ArgumentParser:
     disc.add_argument("--min-stars", type=int, default=None)
     disc.add_argument("--novelty-days", type=int, default=None)
 
+    br = sub.add_parser("browse", help="Raw Markdown snapshot of GitHub Trending (no trust/ranking/LLM)")
+    br.add_argument("--root", type=Path, default=Path.cwd())
+    br.add_argument("--source", choices=["daily", "weekly", "new", "fast-growing", "all"], default="all")
+    br.add_argument("--limit", type=int, default=20)
+    br.add_argument("--language", default=None)
+    br.add_argument("--since", default=None, help="Lookback for new/fast-growing, e.g. 7d, 2w (default 30d/7d)")
+    br.add_argument("--min-stars", type=int, default=None)
+    br.add_argument("--date", default=None)
+
     fb = sub.add_parser("feedback", help="Append lightweight feedback for a candidate")
     fb.add_argument("--root", type=Path, default=Path.cwd())
     fb.add_argument("--date", required=True)
@@ -310,6 +402,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "discover":
             run_discover(root=args.root, date=args.date, profile_path=args.profile,
                          limit=args.limit, min_stars=args.min_stars, novelty_days=args.novelty_days)
+        elif args.command == "browse":
+            run_browse(root=args.root, source=args.source, limit=args.limit,
+                       language=args.language, since=args.since, min_stars=args.min_stars,
+                       date=args.date)
         elif args.command == "feedback":
             run_feedback(root=args.root, date=args.date, candidate_id=args.candidate_id,
                          verdict=args.verdict, value=args.value, note=args.note)

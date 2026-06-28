@@ -32,12 +32,14 @@ class GitHubClient:
         kind: CandidateKind,
         per_page: int = 10,
         min_stars: int = 0,
+        sort: str = "updated",
+        order: str = "desc",
     ) -> list[Candidate]:
         effective_query = query
         if min_stars > 0 and "stars:" not in query:
             effective_query = f"{query} stars:>={min_stars}"
         params = urlencode(
-            {"q": effective_query, "sort": "updated", "order": "desc", "per_page": str(per_page)}
+            {"q": effective_query, "sort": sort, "order": order, "per_page": str(per_page)}
         )
         url = f"https://api.github.com/search/repositories?{params}"
         headers = {
