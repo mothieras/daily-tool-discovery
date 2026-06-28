@@ -130,6 +130,11 @@ inspection. If you're an agent asked "what's hot on GitHub right now",
 `browse` is the right command. If you're asked "what should I use today",
 that's a briefing question.
 
+**`browse` has no trust tier — apply skepticism.** Suspicious signals are not
+filtered out: a "newly created" repo with tens of thousands of stars is almost
+certainly astroturfed, so flag such items rather than presenting them as real
+trends.
+
 The four sources and their signals are documented in
 `references/trending-sources.md` — read that before changing any scrape
 regexes or adding a new source.
